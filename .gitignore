@@ -1,5 +1,10 @@
+.idea
 /rapport/IED_lang_fouille_ia.aux
 /rapport/IED_lang_fouille_ia.log
 /rapport/IED_lang_fouille_ia.out
 /rapport/IED_lang_fouille_ia.synctex.gz
 /rapport/IED_lang_fouille_ia.toc
+
+*.env
+project_database/
+project_data/

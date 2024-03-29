@@ -1,0 +1,21 @@
+version: '3.3'
+
+services:
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - ../../project_database/mongo:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ADMIN}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSW}
+
+  pgdb:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: ${PSQL_PASSW}
+    volumes:
+      - ../../project_database/postgres:/data/db
+    ports:
+        - "5432:5432"
