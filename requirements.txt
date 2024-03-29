@@ -1,0 +1,15 @@
+docker
+nltk
+matplotlib
+numpy
+psycopg2
+tqdm
+elasticsearch
+beautifulsoup4
+langdetect
+scikit-learn
+pandas
+seaborn
+stanza
+torch
+lxml
