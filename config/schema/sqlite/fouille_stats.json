@@ -1,0 +1,20 @@
+{
+  "globales": {
+    "etape": ["TEXT"],
+    "mails": ["INTEGER"],
+    "mots": ["INTEGER"],
+    "mots_uniques": ["INTEGER"]
+  },
+  "spam": {
+    "etape": ["TEXT"],
+    "mails": ["INTEGER"],
+    "mots": ["INTEGER"],
+    "mots_uniques": ["INTEGER"]
+  },
+  "ham": {
+    "etape": ["TEXT"],
+    "mails": ["INTEGER"],
+    "mots": ["INTEGER"],
+    "mots_uniques": ["INTEGER"]
+  }
+}

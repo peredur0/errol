@@ -5,6 +5,8 @@
 /rapport/IED_lang_fouille_ia.synctex.gz
 /rapport/IED_lang_fouille_ia.toc
 
-*.env
 project_database/
 project_data/
+/venv-fl/
+
+config/errol.ini

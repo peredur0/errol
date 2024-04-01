@@ -11,12 +11,20 @@ def args_handler():
     :return: <argparse.Namespace>
     """
     parser = argparse.ArgumentParser(
-        prog="main_project",
+        prog="errol",
         description="programme pour le projet d'étude Fouille de données et Ingénierie des langues"
     )
     subparsers = parser.add_subparsers(title='stages', dest='stage')
 
-    parser_fouille = subparsers.add_parser('fouille', help="Réalisation des actions de fouille de données")
+    parser.add_argument(
+        '-b', '--progress_bar',
+        help='Display progress bar',
+        action='store_true',
+        default=False
+    )
+
+    parser_fouille = subparsers.add_parser('fouille',
+                                           help="Réalisation des actions de fouille de données")
     source = parser_fouille.add_argument_group("source de données")
     source.add_argument(
         "-a", "--ham",
