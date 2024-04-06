@@ -8,5 +8,7 @@
 project_database/
 project_data/
 /venv-fl/
+src/__pycache__/
+src/*/__pychache__/
 
 config/errol.ini
