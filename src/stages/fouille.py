@@ -4,9 +4,12 @@ Code pour la phase de fouille de données
 """
 
 import logging
+import multiprocessing
+import tqdm
 
 from src.modules import cmd_sqlite
 from src.modules import importation
+from src.modules import word_count
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +27,33 @@ def main(conf):
     cli_sqlite.close()
 
     logger.info("Récolte")
-    raw_stack = {'ham': [], 'spam': [], 'csv': conf.args['csv']}
+    files_stack = {'ham': [], 'spam': []}
 
     for cat in ['ham', 'spam']:
-        for folder in conf.args[cat]:
-            raw_stack[cat] += importation.get_files(folder)
+        try:
+            for folder in conf.args[cat]:
+                files_stack[cat] += importation.get_files(folder)
+        except TypeError:
+            logger.warning("%s - aucun dossier donné en argument", cat)
+            continue
+    word_count.fouille_wc_files(files_stack, conf)
+
+    logger.info("Création des documents")
+    pool_args = [(file, cat) for cat, f_list in files_stack.items() for file in list(f_list)]
+    with multiprocessing.Pool(conf.infra['cpu_available']) as pool:
+        result = list(tqdm.tqdm(pool.imap(fouille_docs, pool_args),
+                                desc="Création des documents",
+                                leave=False,
+                                disable=conf.args['progress_bar']))
+    logger.info("Documents créés - %s", len(result))
+
+
+def fouille_docs(pool_args):
+    """
+    Processus de création des documents
+    :param pool_args: <tuple>
+    :return: <dict>
+    """
+    file = pool_args[0]
+    cat = pool_args[1]
+    print(cat, file)

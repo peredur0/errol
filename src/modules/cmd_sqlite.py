@@ -37,3 +37,20 @@ def create_tables(client, schema_file):
         client.execute(f"DROP TABLE IF EXISTS {table};")
         client.execute(f"CREATE TABLE {table} ({params});")
         logger.info("Table SQLite '%s' créée", table)
+
+
+def insert_dict(client, table, data):
+    """
+    Insère les données dans une table psql
+    :param client: <sqlite3.connection>
+    :param table: <str>
+    :param data: <dict>
+    """
+    cursor = client.cursor()
+    colonnes = ', '.join(data.keys())
+    emplacements = ', '.join('?' * len(data))
+    request = f"INSERT INTO {table} ({colonnes}) VALUES ({emplacements})"
+
+    cursor.execute(request, tuple(data.values()))
+    client.commit()
+    logger.info("Données stockées dans la table %s", table)

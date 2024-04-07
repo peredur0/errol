@@ -4,6 +4,7 @@ Gestion des configurations du programme
 """
 
 import logging
+import multiprocessing
 import os.path
 import sys
 from configparser import ConfigParser
@@ -38,8 +39,11 @@ def init_log():
     log_format = logging.Formatter('%(asctime)s [%(levelname)s] - (%(name)s) : %(message)s')
     log_handle.setFormatter(log_format)
 
-    mods = ['__main__', 'src.program.settings', 'src.stages.fouille', 'src.stages.lang',
-            'src.modules.cmd_docker', 'src.modules.cmd_sqlite']
+    mods = ['__main__',
+            'src.program.settings',
+            'src.stages.fouille', 'src.stages.lang',
+            'src.modules.cmd_docker', 'src.modules.cmd_sqlite', 'src.modules.word_count',
+            'src.modules.importation', 'src.modules.transformation', 'src.modules.nettoyage']
     for module in mods:
         m_logger = logging.getLogger(module)
         m_logger.setLevel(log_level)
@@ -71,7 +75,8 @@ class Settings:
             'sqlite': {
                 'file': conf.get('sqlite', 'file'),
                 'schema_stats': conf.get('sqlite', 'schema_stats')
-            }
+            },
+            'cpu_available': (multiprocessing.cpu_count()//2)+1
         }
 
         match self.stage:
