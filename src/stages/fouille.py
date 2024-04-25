@@ -2,14 +2,17 @@
 """
 Code pour la phase de fouille de données
 """
-
+import hashlib
 import logging
 import multiprocessing
+
+import langdetect
 import tqdm
 
 from src.modules import cmd_sqlite
 from src.modules import importation
 from src.modules import word_count
+from src.modules import nettoyage
 
 logger = logging.getLogger(__name__)
 
@@ -36,24 +39,63 @@ def main(conf):
         except TypeError:
             logger.warning("%s - aucun dossier donné en argument", cat)
             continue
-    word_count.fouille_wc_files(files_stack, conf)
+    word_count.fouille_wc(files_stack, conf, 'récolte')
 
     logger.info("Création des documents")
     pool_args = [(file, cat) for cat, f_list in files_stack.items() for file in list(f_list)]
     with multiprocessing.Pool(conf.infra['cpu_available']) as pool:
-        result = list(tqdm.tqdm(pool.imap(fouille_docs, pool_args),
+        result = list(tqdm.tqdm(pool.imap(fouille_doc, pool_args),
                                 desc="Création des documents",
                                 leave=False,
                                 disable=conf.args['progress_bar']))
-    logger.info("Documents créés - %s", len(result))
+    logger.info("Documents créés - %s", len([doc for doc in result if doc]))
+    word_count.fouille_wc([doc for doc in result if doc], conf, 'création')
 
+    logger.info("Mise en base des documents")
+    mise_en_base(result)
 
-def fouille_docs(pool_args):
+def fouille_doc(pool_args):
     """
     Processus de création des documents
     :param pool_args: <tuple>
     :return: <dict>
     """
-    file = pool_args[0]
     cat = pool_args[1]
-    print(cat, file)
+    file = pool_args[0]
+
+    mail = importation.load_mail(file)
+    sujet, exp = importation.extract_mail_meta(mail)
+    body = importation.extract_mail_body(mail)
+    body, liens = nettoyage.clear_texte_init(body)
+
+    if not body:
+        logger.warning("Echec de récupération du corps de %s", file)
+        return None
+
+    try:
+        lang = langdetect.detect(body)
+    except langdetect.lang_detect_exception.LangDetectException:
+        logger.warning("Echec de détection de la langue pour %s", file)
+        return None
+
+    if lang != 'en':
+        logger.warning('Langue détectée pour %s - %s', file, lang)
+        return None
+
+    new_doc = {
+        'hash': hashlib.md5(body.encode()).hexdigest(),
+        'categorie': cat.lower(),
+        'sujet': sujet,
+        'expediteur': exp,
+        'message': body,
+        'langue': lang,
+        'liens': liens
+    }
+
+    return new_doc
+
+def mise_en_base(result):
+    """
+    Mise en base de documents
+    :param result: <list> [<dict>, ...]
+    """

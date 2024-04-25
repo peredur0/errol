@@ -6,6 +6,7 @@ Module pour la gestion des importations dans le programme
 import os
 import logging
 import email
+
 from src.modules import nettoyage
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ def load_mail(file):
     :return: <EmailMessage>
     """
     with open(file, 'rb') as f_bin:
-        return email.message_from_binary_file(f_bin, policy=email.policy.default)
+        return email.message_from_binary_file(f_bin)
 
 
 def extract_mail_body(msg):
@@ -95,5 +96,10 @@ def extract_mail_meta(msg):
     :return: <tuple>
     """
     sujet = msg.get('Subject')
-    expediter = msg.get('From', 'Inconnu').replace("'", "''")
-    return sujet, expediter
+    try:
+        expediteur = msg.get('From', 'Inconnu').replace("'", "''")
+    except AttributeError:
+        data = msg.get('From', 'Inconnu')
+        logger.warning("Echec de récupération de l'expéditeur - %s", data)
+        expediteur = 'Inconnu'
+    return sujet, expediteur
