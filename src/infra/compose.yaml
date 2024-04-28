@@ -1,10 +1,14 @@
 services:
   mongo:
     image: mongo
+    command:
+      - "--auth"
     ports:
       - "27017:27017"
     volumes:
       - ../../project_database/mongo:/data/db
+      - ../../config/schema/mongo/createUser.js:/docker-entrypoint-initdb.d/createUser.js
+      - ../../config/schema/mongo/createCollection.js:/docker-entrypoint-initdb.d/createCollection.js
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ADMIN}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSW}
