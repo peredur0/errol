@@ -18,10 +18,18 @@ def args_handler():
 
     parser.add_argument(
         '-b', '--progress_bar',
-        help='Display progress bar',
+        help='Affiche les barres de progression si disponible',
         action='store_true',
         default=False
     )
+
+    parser_dev = subparsers.add_parser('develop',
+                                       help="Lance la partie en cours de développement")
+
+    parser_dev.add_argument('-d', '--debug',
+                            help='augmente la verbosité des logs',
+                            action='store_true',
+                            default=False)
 
     parser_fouille = subparsers.add_parser('fouille',
                                            help="Réalisation des actions de fouille de données")

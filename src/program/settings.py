@@ -22,28 +22,31 @@ def init():
     arguments = args.args_handler()
     ini_file = './config/errol.ini'
     if not os.path.isfile(ini_file):
-        print(f"FATAL ERROR: fichier manquant {ini_file}")
+        print(f"FATAL ERROR: fichier manquant {ini_file}", file=sys.stderr)
+        sys.exit(1)
 
     conf = ConfigParser()
     conf.read(ini_file, encoding='utf-8')
     return Settings(conf, arguments)
 
 
-def init_log():
+def init_log(debug):
     """
     Initialisation du system de logging
+    :param debug: <bool>
     :return: <None>
     """
-    log_level = logging.INFO
+    log_level = logging.DEBUG if debug else logging.INFO
     log_handle = logging.StreamHandler()
     log_format = logging.Formatter('%(asctime)s [%(levelname)s] - (%(name)s) : %(message)s')
     log_handle.setFormatter(log_format)
 
     mods = ['__main__',
             'src.program.settings',
-            'src.stages.fouille', 'src.stages.lang',
-            'src.modules.cmd_docker', 'src.modules.cmd_sqlite', 'src.modules.word_count',
-            'src.modules.importation', 'src.modules.transformation', 'src.modules.nettoyage']
+            'src.stages.develop', 'src.stages.fouille', 'src.stages.lang',
+            'src.modules.cmd_docker', 'src.modules.cmd_sqlite', 'src.modules.cmd_mongo',
+            'src.modules.word_count', 'src.modules.importation', 'src.modules.transformation',
+            'src.modules.nettoyage']
     for module in mods:
         m_logger = logging.getLogger(module)
         m_logger.setLevel(log_level)
@@ -55,7 +58,11 @@ class Settings:
     Classe regroupant les paramètres globals des programmes
     """
     def __init__(self, conf, arguments):
-        init_log()
+        try:
+            init_log(arguments.debug)
+        except AttributeError:
+            init_log(False)
+
         self.stage = arguments.stage
         self.args = {
             'progress_bar': not arguments.progress_bar
@@ -70,7 +77,11 @@ class Settings:
             },
             'mongo': {
                 'host': conf.get('mongo', 'host'),
-                'port': conf.get('mongo', 'port')
+                'port': conf.get('mongo', 'port'),
+                'db': conf.get('mongo', 'db'),
+                'collection': conf.get('mongo', 'collection'),
+                'user_name': conf.get('mongo', 'user'),
+                'user_pwd': conf.get('mongo', 'password')
             },
             'sqlite': {
                 'file': conf.get('sqlite', 'file'),
@@ -80,6 +91,9 @@ class Settings:
         }
 
         match self.stage:
+            case 'develop':
+                pass
+
             case 'fouille':
                 self.args['ham'] = arguments.ham
                 self.args['spam'] = arguments.spam

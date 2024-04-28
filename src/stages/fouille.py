@@ -54,6 +54,7 @@ def main(conf):
     logger.info("Mise en base des documents")
     mise_en_base(result)
 
+
 def fouille_doc(pool_args):
     """
     Processus de création des documents
@@ -93,6 +94,7 @@ def fouille_doc(pool_args):
     }
 
     return new_doc
+
 
 def mise_en_base(result):
     """
