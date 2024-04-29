@@ -44,7 +44,7 @@ docker_start: ./src/infra/compose.yaml ./src/infra/.env
 docker_stop: ./src/infra/compose.yaml
 	cd ./src/infra/; docker compose down
 
-docker_prune:
+docker_prune: docker_stop
 	docker image prune
 	docker network prune
 	docker volume prune

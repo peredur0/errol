@@ -1,5 +1,5 @@
 db = db.getSiblingDB("errol");
-db.createCollection("ham_spam", {
+db.createCollection("spamassassin", {
     validator: {
         $jsonSchema: {
             bsonType: "object",
@@ -37,4 +37,4 @@ db.createCollection("ham_spam", {
         }
     }
 });
-db.ham_spam.createIndex( {hash: 1}, { unique: true } );
+db.spamassassin.createIndex( { hash: 1 }, { unique: true } );
