@@ -6,6 +6,8 @@ Module pour la gestion des importations dans le programme
 import os
 import logging
 import email
+import email.header
+import re
 
 from src.modules import nettoyage
 
@@ -96,10 +98,21 @@ def extract_mail_meta(msg):
     :return: <tuple>
     """
     sujet = msg.get('Subject')
+    if isinstance(sujet, email.header.Header):
+        sujet = email.header.decode_header(sujet)
+
+    if isinstance(sujet, list):
+        sujet = sujet[0][0].decode(errors='ignore')
+
     try:
         expediteur = msg.get('From', 'Inconnu').replace("'", "''")
     except AttributeError:
         data = msg.get('From', 'Inconnu')
         logger.warning("Echec de récupération de l'expéditeur - %s", data)
         expediteur = 'Inconnu'
+
+    if extract := re.search(r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+"
+                            r"(\.[A-Z|a-z]{2,})+", expediteur):
+        expediteur = extract[0]
+
     return sujet, expediteur

@@ -13,6 +13,7 @@ from src.modules import cmd_sqlite
 from src.modules import importation
 from src.modules import word_count
 from src.modules import nettoyage
+from src.modules import cmd_mongo
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +49,18 @@ def main(conf):
                                 desc="Création des documents",
                                 leave=False,
                                 disable=conf.args['progress_bar']))
-    logger.info("Documents créés - %s", len([doc for doc in result if doc]))
-    word_count.fouille_wc([doc for doc in result if doc], conf, 'création')
+    result = [doc for doc in result if doc]
+    logger.info("Documents créés - %s", len(result))
+    word_count.fouille_wc(result, conf, 'création')
 
-    logger.info("Mise en base des documents")
-    mise_en_base(result)
+    logger.info("Mise en base")
+    mise_en_base(result, conf)
+
+    client = cmd_mongo.connect(conf)
+    db = client[conf.infra['mongo']['db']]
+    collection = db[conf.infra['mongo']['collection']]
+    result = cmd_mongo.get_all_documents(collection, ['categorie', 'message'])
+    word_count.fouille_wc(result, conf, 'mise_en_base')
 
 
 def fouille_doc(pool_args):
@@ -76,11 +84,11 @@ def fouille_doc(pool_args):
     try:
         lang = langdetect.detect(body)
     except langdetect.lang_detect_exception.LangDetectException:
-        logger.warning("Echec de détection de la langue pour %s", file)
+        logger.error("Echec de détection de la langue pour %s", file)
         return None
 
     if lang != 'en':
-        logger.warning('Langue détectée pour %s - %s', file, lang)
+        logger.debug('Langue détectée pour %s - %s', file, lang)
         return None
 
     new_doc = {
@@ -96,8 +104,24 @@ def fouille_doc(pool_args):
     return new_doc
 
 
-def mise_en_base(result):
+def mise_en_base(result, conf):
     """
     Mise en base de documents
     :param result: <list> [<dict>, ...]
+    :param conf: <Settings>
+    :return: <None>
     """
+    chunk_size = 100
+    chunked = [result[i:i + chunk_size] for i in range(0, len(result), chunk_size)]
+
+    client = cmd_mongo.connect(conf)
+    db = client[conf.infra['mongo']['db']]
+    collection = db[conf.infra['mongo']['collection']]
+
+    for chunk in tqdm.tqdm(chunked,
+                           desc="Mise en base des documents",
+                           leave=False,
+                           disable=conf.args['progress_bar']):
+        cmd_mongo.insert_documents(chunk, collection)
+
+    client.close()

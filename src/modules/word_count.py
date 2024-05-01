@@ -31,7 +31,7 @@ def fouille_wc(data_stack, conf, stage):
             pool_args = [(file, cat, shared_queue, stage) for cat, f_list in data_stack.items()
                          for file in list(f_list)]
 
-        case 'création':
+        case 'création' | 'mise_en_base':
             pool_args = [(doc['message'], doc['categorie'], shared_queue, stage) for doc in
                          data_stack]
 
@@ -115,7 +115,7 @@ def word_count_args(pool_arg):
     match stage:
         case 'récolte':
             mots = importation.get_text_file(source).split()
-        case 'création':
+        case 'création' | 'mise_en_base':
             mots = source.split()
         case _:
             logger.error('Etape inconnue pour word_count - %s', stage)
