@@ -2,13 +2,17 @@
 """
 Fichier pour tester les développements en cours
 """
-
+import json
 import logging
-import pymongo
-import pymongo.errors
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+from src.modules import cmd_sqlite
 
 logger = logging.getLogger(__name__)
 
+sns.set()
 
 def main(conf):
     """
@@ -17,109 +21,41 @@ def main(conf):
     :return: None
     """
     logger.info("DEVELOPPEMENT")
-    client = connect(conf)
 
-    doc_1 = {
-        'hash': 'foo',
-        'categorie': 'spam',
-        'sujet': 'Je suis un SPAM',
-        'expediteur': 'white.rabbit@monty.com',
-        'message': 'MWHAHAHAHA',
-        'langue': 'en',
-        'liens': {
-            'URL': 0,
-            'MAIL': 1,
-            'TEL': 1,
-            'NOMBRE': 3,
-            'PRIX': 4
-        }
-    }
+    with open(conf.infra['sqlite']['schema_stats'], 'r', encoding='utf-8') as json_file:
+        schema = json.load(json_file)
 
-    doc_2 = {
-        'hash': 'foo',
-        'categorie': 'spam',
-        'sujet': 'Je suis un SPAM2',
-        'expediteur': 'white.rabbit@monty.com',
-        'message': 'MWHAHAHAHA2',
-        'langue': 'en',
-        'liens': {
-            'URL': 0,
-            'MAIL': 1,
-            'TEL': 1,
-            'NOMBRE': 3,
-            'PRIX': 4
-        }
-    }
+    data = []
+    cats = list(schema.keys())
+    client = cmd_sqlite.connect(conf.infra['sqlite']['file'])
+    for cat in cats:
+        output = cmd_sqlite.get_data(client, cat)
+        for row in output:
+            keys = list(schema[cat].keys())
+            row_info = dict(zip(keys, row))
+            row_info['categorie'] = cat
+            data.append(row_info)
 
-    doc_3 = {
-        'hash': 'bar',
-        'categorie': 'ham',
-        'sujet': 'Je suis un HAM',
-        'expediteur': 'white.rabbit@monty.com',
-        'message': 'Hello there',
-        'langue': 'en',
-        'liens': {
-            'URL': 1,
-            'MAIL': 1,
-            'TEL': 1,
-            'NOMBRE': 3,
-            'PRIX': 4
-        }
-    }
-    db = client[conf.infra['mongo']['db']]
-    collection = db[conf.infra['mongo']['collection']]
-    documents = [doc_1, doc_2, doc_3]
+    stats_df = pd.DataFrame(data)
+    fields = ['categorie', 'mails', 'mots', 'mots_uniques']
+    for etape in stats_df['etape'].unique():
+        etape_df = stats_df[stats_df['etape'] == etape][fields]
+        logger.info("Statistiques %s:\n%s", etape, etape_df.to_string(index=False))
 
-    insert_documents(documents, collection)
+    fig, axes = plt.subplots(1, 3, figsize=(17, 5))
+    fig.suptitle('Statistiques de la récolte')
+    fig.subplots_adjust(wspace=0.4)
 
-    client.close()
+    index = 0
+    for key, titre in [('mails', 'Documents conservés'), ('mots', 'Nombre de mots'),
+                       ('mots_uniques', 'Nombre de mots uniques')]:
+        sns.barplot(data=stats_df[[key, 'etape', 'categorie']], x='etape', y=key,
+                    hue='categorie', ax=axes[index], hue_order=['globales', 'ham', 'spam'])
+        axes[index].set_title(titre)
+        axes[index].get_legend().set_visible(False)
+        index += 1
 
+    handles, labels = plt.gca().get_legend_handles_labels()
+    fig.legend(handles, labels, ncols=3, loc='upper left')
 
-def connect(conf):
-    """
-    Créé un client pour la connexion avec mongodb
-    :param conf: <Settings>
-    :return: <pymongoClient>
-    """
-    c_mongo = conf.infra['mongo']
-    uri = (f"mongodb://{c_mongo['user_name']}:{c_mongo['user_pwd']}@{c_mongo['host']}:"
-           f"{c_mongo['port']}/{c_mongo['db']}")
-    return pymongo.MongoClient(uri)
-
-
-def insert_documents(documents, collection):
-    """
-    Ajoute une liste de documents dans une collection mongo
-    :param collection: <pymongo_Collection>
-    :param documents: <list>
-    """
-    final_list = []
-    doc_ids = set()
-    for doc in documents:
-        if doc['hash'] in doc_ids:
-            logger.info("Document dupliqué - %s", doc['hash'])
-            continue
-        doc_ids.add(doc['hash'])
-        final_list.append(doc)
-
-    hash_list = [doc['hash'] for doc in final_list]
-
-    try:
-        with pymongo.timeout(15):
-            existing = [doc['hash'] for doc in list(collection.find({'hash': {'$in': hash_list}}))]
-    except pymongo.errors.ServerSelectionTimeoutError:
-        logger.error("Timeout lors de la recherche de documents")
-        return
-
-    final_list = [doc for doc in final_list if doc['hash'] not in existing]
-
-    if not final_list:
-        logger.info("Aucun document à ajouter")
-        return
-
-    with pymongo.timeout(15):
-        try:
-            res = collection.insert_many(final_list)
-            logger.info("Documents insérés - %s", len(res.inserted_ids))
-        except pymongo.errors.BulkWriteError as err:
-            logger.error("Erreur d'insertion - %s", err)
+    plt.show()

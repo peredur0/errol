@@ -3,12 +3,12 @@
 Code pour la phase de fouille de données
 """
 import hashlib
+import json
 import logging
 import multiprocessing
-
 import langdetect
 import tqdm
-
+import pandas as pd
 from src.modules import cmd_sqlite
 from src.modules import importation
 from src.modules import word_count
@@ -61,6 +61,9 @@ def main(conf):
     collection = db[conf.infra['mongo']['collection']]
     result = cmd_mongo.get_all_documents(collection, ['categorie', 'message'])
     word_count.fouille_wc(result, conf, 'mise_en_base')
+
+    logger.info('Statistiques de la fouille')
+    get_stats(conf)
 
 
 def fouille_doc(pool_args):
@@ -125,3 +128,33 @@ def mise_en_base(result, conf):
         cmd_mongo.insert_documents(chunk, collection)
 
     client.close()
+
+
+def get_stats(conf):
+    """
+    Récupère les statistiques de la fouille et les affiche
+    :param conf: <Settings>
+    """
+    with open(conf.infra['sqlite']['schema_stats'], 'r', encoding='utf-8') as json_file:
+        schema = json.load(json_file)
+
+    data = []
+    cats = list(schema.keys())
+    client = cmd_sqlite.connect(conf.infra['sqlite']['file'])
+    for cat in cats:
+        output = cmd_sqlite.get_data(client, cat)
+        for row in output:
+            keys = list(schema[cat].keys())
+            row_info = dict(zip(keys, row))
+            row_info['categorie'] = cat
+            data.append(row_info)
+
+    stats_df = pd.DataFrame(data)
+    pivot = stats_df.pivot_table(values=['mails', 'mots', 'mots_uniques'],
+                                 columns=['categorie'],
+                                 index=['etape'],
+                                 sort=False)
+    logger.info("Statistiques de la fouille\n%s", pivot)
+
+    if conf.args['graph']:
+        pass

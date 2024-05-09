@@ -98,6 +98,7 @@ class Settings:
                 self.args['ham'] = arguments.ham
                 self.args['spam'] = arguments.spam
                 self.args['csv'] = arguments.fichier_csv
+                self.args['graph'] = arguments.graph
 
                 for cont in self.infra['containers']:
                     if not cmd_docker.container_up(cont):

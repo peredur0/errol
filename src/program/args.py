@@ -34,6 +34,10 @@ def args_handler():
     parser_fouille = subparsers.add_parser('fouille',
                                            help="Réalisation des actions de fouille de données")
     source = parser_fouille.add_argument_group("source de données")
+    source.add_argument("-g", "--graph",
+                        help="Affiche les données statistiques sous forme de graph",
+                        action='store_true',
+                        default=False)
     source.add_argument(
         "-a", "--ham",
         dest='ham',

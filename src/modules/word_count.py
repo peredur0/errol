@@ -148,3 +148,4 @@ def store_word_count(data, conf):
     for key, value in data.items():
         cmd_sqlite.insert_dict(cli_sqlite, key, value)
     cli_sqlite.close()
+    logger.debug(data)
