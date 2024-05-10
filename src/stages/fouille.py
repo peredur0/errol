@@ -14,6 +14,7 @@ from src.modules import importation
 from src.modules import word_count
 from src.modules import nettoyage
 from src.modules import cmd_mongo
+from src.modules import graph
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +65,8 @@ def main(conf):
 
     logger.info('Statistiques de la fouille')
     get_stats(conf)
+
+    logger.info('Fin du processus de fouille initial')
 
 
 def fouille_doc(pool_args):
@@ -157,4 +160,4 @@ def get_stats(conf):
     logger.info("Statistiques de la fouille\n%s", pivot)
 
     if conf.args['graph']:
-        pass
+        graph.fouille_dash(stats_df)

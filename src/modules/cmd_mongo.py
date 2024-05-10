@@ -87,6 +87,7 @@ def get_all_documents(collection, include=None):
     Récupère tous les documents d'une collection
     :param collection: <pymongo_Collection>
     :param include: <str|list>
+    :return: <Cursor|list>
     """
     if include is None:
         include = {}
@@ -94,6 +95,9 @@ def get_all_documents(collection, include=None):
         include = {field: 1 for field in include}
     else:
         include = {include: 1}
-
-    with pymongo.timeout(15):
-        return collection.find({}, include)
+    try:
+        with pymongo.timeout(15):
+            return list(collection.find({}, include))
+    except pymongo.errors.ServerSelectionTimeoutError as err:
+        logger.error(err)
+        return []

@@ -46,7 +46,8 @@ def init_log(debug):
             'src.stages.develop', 'src.stages.fouille', 'src.stages.lang',
             'src.modules.cmd_docker', 'src.modules.cmd_sqlite', 'src.modules.cmd_mongo',
             'src.modules.word_count', 'src.modules.importation', 'src.modules.transformation',
-            'src.modules.nettoyage']
+            'src.modules.nettoyage', 'src.modules.graph',
+            'src.annexes.zipf']
     for module in mods:
         m_logger = logging.getLogger(module)
         m_logger.setLevel(log_level)
