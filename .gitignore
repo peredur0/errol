@@ -12,5 +12,6 @@ src/__pycache__/
 src/modules/__pycache__/
 src/program/__pycache__/
 src/stages/__pycache__/
+src/annexes/__pycache__/
 
 config/errol.ini
