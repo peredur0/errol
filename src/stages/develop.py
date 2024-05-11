@@ -7,6 +7,7 @@ import logging
 
 import seaborn as sns
 import pandas as pd
+import numpy as np
 from src.modules import cmd_sqlite
 from src.modules import cmd_mongo
 from src.modules import graph
@@ -54,4 +55,19 @@ def main(conf):
     logger.info("Distribution de zipf\n\tconstante: %.2f\n\tcoefficient k: %.2f",
                 zipf_data['const_moy'], zipf_data['coef_min'])
 
-    graph.fouille_dash(stats_df, zipf_data)
+    link_data = cmd_mongo.get_all_documents(collection, ['categorie', 'liens'])
+    link_data = [{'categorie': entry['categorie'], 'liens': key, 'value': value}
+                 for entry in link_data
+                 for key, value in entry['liens'].items()]
+    link_data = pd.DataFrame(link_data)
+    link_data = link_data.pivot_table(
+        index='liens',
+        values='value',
+        columns='categorie',
+        aggfunc=['mean', graph.q50, graph.q90, 'max']
+    )
+    logger.info("Statistiques des liens\n%s", link_data)
+
+    graph.fouille_dash(stats_df, zipf_data, link_data)
+
+    client.close()

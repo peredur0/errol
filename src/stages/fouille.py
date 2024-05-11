@@ -15,6 +15,7 @@ from src.modules import word_count
 from src.modules import nettoyage
 from src.modules import cmd_mongo
 from src.modules import graph
+from src.annexes import zipf
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,6 @@ def main(conf):
     result = cmd_mongo.get_all_documents(collection, ['categorie', 'message'])
     word_count.fouille_wc(result, conf, 'mise_en_base')
 
-    logger.info('Statistiques de la fouille')
     get_stats(conf)
 
     logger.info('Fin du processus de fouille initial')
@@ -159,5 +159,52 @@ def get_stats(conf):
                                  sort=False)
     logger.info("Statistiques de la fouille\n%s", pivot)
 
+    zipf_data = zipf_stats(conf)
+    link_data = link_stats(conf)
+
     if conf.args['graph']:
-        graph.fouille_dash(stats_df)
+        graph.fouille_dash(stats_df, zipf_data, link_data)
+
+
+def zipf_stats(conf):
+    """
+    Génère les statistiques en relation avec la distribution de zipf.
+    :param conf: <Settings>
+    :return: <dict>
+    """
+    client = cmd_mongo.connect(conf)
+    collection = client[conf.infra['mongo']['db']][conf.infra['mongo']['collection']]
+    bag = cmd_mongo.get_all_documents(collection, include='message')
+    bag = [doc['message'].split() for doc in bag]
+    bag = [mot for doc in bag for mot in doc]
+
+    zipf_data = zipf.zipf_process(bag)
+    logger.info("Distribution de zipf\n\tconstante: %.2f\n\tcoefficient k: %.2f",
+                zipf_data['const_moy'], zipf_data['coef_min'])
+    client.close()
+    return zipf_data
+
+
+def link_stats(conf):
+    """
+    Génère les statistiques des liens.
+    :param conf: <Settings>
+    :return: <Dataframe>
+    """
+    client = cmd_mongo.connect(conf)
+    collection = client[conf.infra['mongo']['db']][conf.infra['mongo']['collection']]
+    link_data = cmd_mongo.get_all_documents(collection, ['categorie', 'liens'])
+    link_data = [{'categorie': entry['categorie'], 'liens': key, 'value': value}
+                 for entry in link_data
+                 for key, value in entry['liens'].items()]
+    link_data = pd.DataFrame(link_data)
+    link_data = link_data.pivot_table(
+        index='liens',
+        values='value',
+        columns='categorie',
+        aggfunc=['mean', graph.q50, graph.q90, 'max']
+    )
+    logger.info("Statistiques des liens\n%s", link_data)
+    client.close()
+
+    return link_data
