@@ -23,13 +23,15 @@ def clear_html(texte):
     return brut
 
 
+pattern_enriched = re.compile('<.*>')
+
+
 def clear_enriched(texte):
     """ Supprime les balises des textes enrichis
     :param texte: <str>
     :return: <str>
     """
-    pattern = re.compile('<.*>')
-    return re.sub(pattern, '', texte)
+    return re.sub(pattern_enriched, '', texte)
 
 
 def clear_texte_init(texte):
@@ -55,20 +57,20 @@ def clear_reply(texte):
     return re.sub(pattern, '', texte)
 
 
+pattern_mail = re.compile('[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+')
+pattern_url1 = re.compile(r'(http|ftp|https)?://([\w\-_]+(?:(?:\.[\w\-_]+)+))'
+                          r'([\w\-.,@?^=%&:/~+#]*[\w\-@?^=%&/~+#])?', flags=re.MULTILINE)
+pattern_url2 = re.compile(r'(\w+\.)+\w+', flags=re.MULTILINE)
+pattern_tel1 = re.compile(r'\(\d{3}\)\d+-\d+')  # (359)1234-1000
+pattern_tel2 = re.compile(r'\+\d+([ .-]?\d)+')    # +34 936 00 23 23
+
+
 def change_lien(texte, liens):
     """Sauvegarde les liens dans un dictionnaire séparé et les supprime du texte
     :param texte: <str>
-    :param liens: <dict> dictonnaire des liens
+    :param liens: <dict> dictionnaire des liens
     :return: <str> - texte nettoyé
     """
-    pattern_mail = re.compile('[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+')
-
-    pattern_url1 = re.compile(r'(http|ftp|https)?:\/\/([\w\-_]+(?:(?:\.[\w\-_]+)+))'
-                              r'([\w\-\.,@?^=%&:/~\+#]*[\w\-\@?^=%&/~\+#])?', flags=re.MULTILINE)
-    pattern_url2 = re.compile(r'(\\w+\\.)+\\w+', flags=re.MULTILINE)
-    pattern_tel1 = re.compile(r'\\(\\d{3}\\)\\d+-\\d+')  # (359)1234-1000
-    pattern_tel2 = re.compile(r'\\+\\d+([ .-]?\\d)+')    # +34 936 00 23 23
-
     temp, liens['MAIL'] = re.subn(pattern_mail, '', texte)
 
     temp, liens['URL'] = re.subn(pattern_url1, '', temp)
@@ -82,17 +84,18 @@ def change_lien(texte, liens):
     return temp
 
 
+MONNAIE = '$£€'
+pattern_prix1 = re.compile(f'[{MONNAIE}]( )?\\d+([.,]\\d+)? ', flags=re.MULTILINE)
+pattern_prix2 = re.compile(f' \\d+([.,]\\d+)?( )?[{MONNAIE}]', flags=re.MULTILINE)
+pattern_nb = re.compile('\\d+')
+
+
 def change_nombres(texte, liens):
     """ Retire les données numéraires et stocke le nombre de substitutions
     :param texte: <str>
     :param liens: <dict> dictonnaire des liens
     :return: <str>
     """
-    monnaie = '$£€'
-    pattern_prix1 = re.compile(f'[{monnaie}]( )?\\d+([.,]\\d+)? ', flags=re.MULTILINE)
-    pattern_prix2 = re.compile(f' \\d+([.,]\\d+)?( )?[{monnaie}]', flags=re.MULTILINE)
-    pattern_nb = re.compile('\\d+')
-
     temp, liens['PRIX'] = re.subn(pattern_prix1, '', texte)
     temp, nb = re.subn(pattern_prix2, '', temp)
     liens['PRIX'] += nb
@@ -102,11 +105,13 @@ def change_nombres(texte, liens):
     return temp
 
 
+pattern_ponct = re.compile(r'[*#\\-_=:;<>\[\]"\'~)(|/$+}{@%&\\]', flags=re.MULTILINE)
+
+
 def clear_ponctuation(texte):
     """
     Supprimer les ponctuations non grammaticales
     :param texte: <str>
     :return: <str>
     """
-    pattern_ponct = re.compile(r'[*#\\-_=:;<>\[\]"\'~)(|/$+}{@%&\\]', flags=re.MULTILINE)
     return re.sub(pattern_ponct, '', texte)
