@@ -1,6 +1,6 @@
 services:
   mongo:
-    image: mongo
+    image: mongo:latest
     command:
       - "--auth"
     ports:
@@ -14,10 +14,11 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSW}
 
   pgdb:
-    image: postgres
+    image: postgres:latest
     environment:
       POSTGRES_PASSWORD: ${PSQL_PASSW}
     volumes:
       - ../../project_database/postgres:/data/db
+      - ../../config/schema/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
         - "5432:5432"

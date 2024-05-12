@@ -1,0 +1,27 @@
+{
+  "errol": {
+    "categories": {
+      "id_cat": ["SERIAL", "PRIMARY KEY"],
+      "type": ["VARCHAR", "UNIQUE", "NOT NULL"]
+    },
+    "messages": {
+      "id_message": ["SERIAL", "PRIMARY KEY"],
+      "hash": ["CHAR(32)", "UNIQUE", "NOT NULL"],
+      "id_cat": ["INT", "NOT NULL"],
+      "fk": {
+        "fk_message": ["id_cat", "categories(id_cat)", "SET NULL"]
+      }
+    },
+    "liens": {
+      "id_message": ["INT"],
+      "url": ["INT"],
+      "mail": ["INT"],
+      "tel": ["INT"],
+      "nombre": ["INT"],
+      "prix": ["INT"],
+      "fk": {
+        "fk_liens": ["id_message", "messages(id_message)", "CASCADE"]
+      }
+    }
+  }
+}
