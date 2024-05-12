@@ -6,6 +6,7 @@ import logging
 
 
 logger = logging.getLogger(__name__)
+from src.stages import fouille
 
 
 def main(conf):
@@ -15,3 +16,5 @@ def main(conf):
     :return: None
     """
     logger.info("DEVELOPPEMENT")
+    fouille.databases_init(conf)
+

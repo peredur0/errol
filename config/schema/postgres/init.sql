@@ -1,7 +1,3 @@
 CREATE DATABASE errol;
-
 CREATE USER psql_errol WITH PASSWORD 'Azerty1234';
-
-GRANT CONNECT ON DATABASE errol TO psql_errol;
-GRANT USAGE ON SCHEMA public TO psql_errol;
-GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO psql_errol;
+ALTER DATABASE errol OWNER TO psql_errol;

@@ -76,7 +76,11 @@ class Settings:
                 'host': conf.get('psql', 'host'),
                 'port': conf.get('psql', 'port'),
                 'user': conf.get('psql', 'user'),
-                'pass': conf.get('psql', 'password')
+                'pass': conf.get('psql', 'password'),
+                'db': conf.get('psql', 'db'),
+                'schema': {
+                    'fouille': conf.get('psql', 'schema_fouille')
+                }
             },
             'mongo': {
                 'host': conf.get('mongo', 'host'),

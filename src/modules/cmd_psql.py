@@ -35,40 +35,36 @@ def connect_db(user, passwd, host, port, dbname=""):
     return client_psql
 
 
-def create_table(client_psql, nom, champs):
+def create_table(client_psql, schema):
     """
     Créé une nouvelle table dans la base de donnees
     :param client_psql: <psycopg2.extension.connection> object connexion vers une base de donnee
-    :param nom: <str> nom de la table
-    :param champs: <dict> nom : [type, options]
+    :param schema: <dict>
     :return:
     """
-    fields = []
+    instr = []
+    for field in schema['fields']:
+        instr.append(f"{field['name']} {' '.join(field['type'])}")
+
+    if 'primary_key' in schema and schema['primary_key']:
+        instr.append(f"PRIMARY KEY ({','.join(schema['primary_key'])}")
+
+    if "foreign_keys" in schema and schema['foreign_keys']:
+        for key in schema['foreign_keys']:
+            constr = (f"CONSTRAINT {key['name']} FOREIGN KEY({key['field']}) REFERENCES "
+                      f"{key['reference']}")
+            if 'on_delete' in key and key['on_delete']:
+                constr += f" ON DELETE {key['on_delete']}"
+            instr.append(constr)
+
     cursor = client_psql.cursor()
-
-    for key, value in champs.items():
-        if key in ['pk', 'fk']:
-            continue
-        fields.append(f"{key} {' '.join(value)}")
-
-    if 'pk' in champs.keys():
-        fields.append(f"PRIMARY KEY ({','.join(champs.pop('pk'))})")
-
-    if 'fk' in champs.keys():
-        for name, val in champs['fk'].items():
-            constr = f"CONSTRAINT {name} FOREIGN KEY({val.pop(0)}) REFERENCES {val.pop(0)}"
-            if val:
-                constr += f" ON DELETE {val.pop(0)}"
-            fields.append(constr)
-
-    query = f"CREATE TABLE {nom} ({', '.join(fields)})"
-
+    query = f"CREATE TABLE {schema['name']} ({', '.join(instr)})"
     try:
         cursor.execute(query)
     except psycopg2.Error as err:
         logger.error(err)
     else:
-        logger.info("Table '%s' créée", nom)
+        logger.info("Table '%s' créée", schema['name'])
 
 
 def create_index(client_psql, nom, table, colonne):

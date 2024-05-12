@@ -1,0 +1,89 @@
+{
+  "databases": [
+    {
+      "name": "errol",
+      "tables": {
+        "unchanged": [],
+        "delete": [],
+        "update": [],
+        "new": [
+          {
+            "name": "categories",
+            "fields": [
+              {
+                "name": "id_categorie",
+                "type": ["SERIAL", "PRIMARY KEY"]
+              },
+              {
+                "name": "nom",
+                "type": ["VARCHAR", "UNIQUE", "NOT NULL"]
+              }
+            ]
+          },
+          {
+            "name": "messages",
+            "fields": [
+              {
+                "name": "id_message",
+                "type": ["SERIAL", "PRIMARY KEY"]
+              },
+              {
+                "name": "hash",
+                "type": ["CHAR(32)", "UNIQUE", "NOT NULL"]
+              },
+              {
+                "name": "id_categorie",
+                "type": ["INT", "NOT NULL"]
+              }
+            ],
+            "foreign_keys": [
+              {
+                "name": "fk_message",
+                "field": "id_categorie",
+                "reference": "categories(id_categorie)",
+                "on_delete": "SET NULL"
+              }
+            ]
+          },
+          {
+            "name": "liens",
+            "fields": [
+              {
+                "name": "id_message",
+                "type": ["INT"]
+              },
+              {
+                "name": "url",
+                "type": ["INT"]
+              },
+              {
+                "name": "mail",
+                "type": ["INT"]
+              },
+              {
+                "name": "tel",
+                "type": ["INT"]
+              },
+              {
+                "name": "nombre",
+                "type": ["INT"]
+              },
+              {
+                "name": "prix",
+                "type": ["INT"]
+              }
+            ],
+            "foreign_keys": [
+              {
+                "name": "fk_liens",
+                "field": "id_message",
+                "reference": "messages(id_message)",
+                "on_delete": "CASCADE"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
