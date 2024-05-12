@@ -45,8 +45,8 @@ def init_log(debug):
             'src.program.settings',
             'src.stages.develop', 'src.stages.fouille', 'src.stages.lang',
             'src.modules.cmd_docker', 'src.modules.cmd_sqlite', 'src.modules.cmd_mongo',
-            'src.modules.word_count', 'src.modules.importation', 'src.modules.transformation',
-            'src.modules.nettoyage', 'src.modules.graph',
+            'src.modules.cmd_psql', 'src.modules.word_count', 'src.modules.importation',
+            'src.modules.transformation', 'src.modules.nettoyage', 'src.modules.graph',
             'src.annexes.zipf']
     for module in mods:
         m_logger = logging.getLogger(module)
@@ -74,7 +74,9 @@ class Settings:
                            conf.get('infra', 'mongo_container')],
             'psql': {
                 'host': conf.get('psql', 'host'),
-                'port': conf.get('psql', 'port')
+                'port': conf.get('psql', 'port'),
+                'user': conf.get('psql', 'user'),
+                'pass': conf.get('psql', 'password')
             },
             'mongo': {
                 'host': conf.get('mongo', 'host'),
