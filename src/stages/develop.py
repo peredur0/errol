@@ -3,10 +3,10 @@
 Fichier pour tester les développements en cours
 """
 import logging
+from src.stages import fouille
 
 
 logger = logging.getLogger(__name__)
-from src.stages import fouille
 
 
 def main(conf):
@@ -17,4 +17,3 @@ def main(conf):
     """
     logger.info("DEVELOPPEMENT")
     fouille.databases_init(conf)
-
