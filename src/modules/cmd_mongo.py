@@ -27,40 +27,44 @@ def insert_documents(documents, collection):
     Ajoute une liste de documents dans une collection mongo
     :param collection: <pymongo_Collection>
     :param documents: <list>
+    :return: <list>
     """
     final_list = []
     doc_ids = set()
     for doc in documents:
-        if doc['hash'] in doc_ids:
-            logger.info("Document dupliqué - %s", doc['hash'])
+        if doc['_id'] in doc_ids:
+            logger.info("Document dupliqué - %s", doc['_id'])
             continue
-        doc_ids.add(doc['hash'])
+        doc_ids.add(doc['_id'])
         final_list.append(doc)
 
-    hash_list = [doc['hash'] for doc in final_list]
+    hash_list = [doc['_id'] for doc in final_list]
     try:
         with pymongo.timeout(15):
-            existing = [doc['hash'] for doc in list(collection.find({'hash': {'$in': hash_list}}))]
+            existing = [doc['_id'] for doc in list(collection.find({'_id': {'$in': hash_list}}))]
     except pymongo.errors.ServerSelectionTimeoutError:
         logger.error("Timeout lors de la recherche de documents")
-        return
+        return []
 
-    final_list = [doc for doc in final_list if doc['hash'] not in existing]
+    final_list = [doc for doc in final_list if doc['_id'] not in existing]
 
     if not final_list:
         logger.info("Aucun document à ajouter")
-        return
+        return []
 
     with pymongo.timeout(15):
         try:
             res = collection.insert_many(final_list)
         except (pymongo.errors.BulkWriteError, bson.errors.InvalidDocument) as err:
             logger.error("Erreur d'insertion par groupe - %s", err)
+            res = []
             for document in final_list:
-                insert_document(document, collection)
-            return
+                ret = insert_document(document, collection)
+                if ret:
+                    res.append(ret)
 
         logger.info("Documents insérés - %s", len(res.inserted_ids))
+        return res.inserted_ids
 
 
 def insert_document(document, collection):
@@ -73,13 +77,14 @@ def insert_document(document, collection):
         try:
             res = collection.insert_one(document)
         except pymongo.errors.DuplicateKeyError:
-            logger.debug("Document %s déjà présent", document['hash'])
-            return
+            logger.debug("Document %s déjà présent", document['_id'])
+            return None
         except pymongo.errors.WriteError as err:
             logger.error(err)
-            return
+            return None
 
         logger.debug("Document %s inséré unitairement", res.inserted_id)
+        return res.inserted_id
 
 
 def get_all_documents(collection, include=None):

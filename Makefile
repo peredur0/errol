@@ -44,9 +44,10 @@ docker_start: ./src/infra/compose.yaml ./src/infra/.env
 docker_stop: ./src/infra/compose.yaml
 	cd ./src/infra/; docker compose down
 
-docker_prune: docker_stop
-	docker image prune
-	docker network prune
-	docker volume prune
+docker_prune:
+	cd ./src/infra/; docker compose down -v --rmi local --remove-orphans
+	docker image prune -f
+	docker network prune -f
+	docker volume prune -f
 
 .PHONY: all venv lint clean

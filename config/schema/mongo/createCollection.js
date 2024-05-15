@@ -3,12 +3,8 @@ db.createCollection("spamassassin", {
     validator: {
         $jsonSchema: {
             bsonType: "object",
-            required: ["hash", "message"],
+            required: ["message"],
             properties: {
-                hash: {
-                    bsonType: "string",
-                    description: "identifiant unique du message"
-                },
                 categorie: {
                     bsonType: "string",
                     description: "type de mail"
@@ -29,12 +25,7 @@ db.createCollection("spamassassin", {
                     bsonType: "string",
                     description: "langue principale du mail"
                 },
-                liens: {
-                    bsonType: "object",
-                    description: "information sur les liens et nombres"
-                },
             }
         }
     }
 });
-db.spamassassin.createIndex( { hash: 1 }, { unique: true } );

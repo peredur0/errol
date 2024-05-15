@@ -6,6 +6,8 @@ import hashlib
 import json
 import logging
 import multiprocessing
+import sys
+
 import langdetect
 import tqdm
 import pandas as pd
@@ -86,6 +88,8 @@ def databases_init(conf):
                                    host=conf.infra['psql']['host'],
                                    port=conf.infra['psql']['port'],
                                    dbname=conf.infra['psql']['db'])
+    if not cli_psql:
+        sys.exit(1)
 
     for db_schema in schema['databases']:
         if db_schema['name'] == "errol":
@@ -139,6 +143,10 @@ def fouille_doc(pool_args):
     return new_doc
 
 
+mongo_fields = ['categorie', 'sujet', 'expediteur', 'message', 'langue']
+psql_fields = ['hash', 'categorie']
+
+
 def mise_en_base(result, conf):
     """
     Mise en base de documents
@@ -149,17 +157,30 @@ def mise_en_base(result, conf):
     chunk_size = 100
     chunked = [result[i:i + chunk_size] for i in range(0, len(result), chunk_size)]
 
-    client = cmd_mongo.connect(conf)
-    db = client[conf.infra['mongo']['db']]
+    cli_mongo = cmd_mongo.connect(conf)
+    db = cli_mongo[conf.infra['mongo']['db']]
     collection = db[conf.infra['mongo']['collection']]
 
     for chunk in tqdm.tqdm(chunked,
                            desc="Mise en base des documents",
                            leave=False,
                            disable=conf.args['progress_bar']):
-        cmd_mongo.insert_documents(chunk, collection)
+        mongo_chunk = []
+        psql_chunk = []
+        for doc in chunk:
+            m_entry = {k: v for k, v in doc.items() if k in mongo_fields}
+            m_entry['_id'] = doc['hash']
+            mongo_chunk.append(m_entry)
 
-    client.close()
+            p_entry = {k: v for k, v in doc.items() if k in psql_fields}
+            p_entry.update(doc['liens'])
+            psql_chunk.append(p_entry)
+
+        inserted = cmd_mongo.insert_documents(mongo_chunk, collection)
+        psql_chunk = [doc for doc in psql_chunk if doc['hash'] in inserted]
+
+
+    cli_mongo.close()
 
 
 def get_stats(conf):
