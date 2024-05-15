@@ -33,4 +33,3 @@ def main(conf):
     logger.info("Documents créés - %s", len(result))
 
     fouille.mise_en_base(result, conf)
-    # todo: trouver comment nettoyer un container
