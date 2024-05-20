@@ -33,7 +33,7 @@ def insert_documents(documents, collection):
     doc_ids = set()
     for doc in documents:
         if doc['_id'] in doc_ids:
-            logger.info("Document dupliqué - %s", doc['_id'])
+            logger.info("Document dupliqué dans %s - %s", collection.name, doc['_id'])
             continue
         doc_ids.add(doc['_id'])
         final_list.append(doc)
@@ -55,6 +55,7 @@ def insert_documents(documents, collection):
     with pymongo.timeout(15):
         try:
             res = collection.insert_many(final_list)
+            res = res.inserted_ids
         except (pymongo.errors.BulkWriteError, bson.errors.InvalidDocument) as err:
             logger.error("Erreur d'insertion par groupe - %s", err)
             res = []
@@ -63,8 +64,8 @@ def insert_documents(documents, collection):
                 if ret:
                     res.append(ret)
 
-        logger.info("Documents insérés - %s", len(res.inserted_ids))
-        return res.inserted_ids
+        logger.info("Documents insérés dans %s - %s", collection.name, len(res))
+        return res
 
 
 def insert_document(document, collection):
@@ -77,13 +78,13 @@ def insert_document(document, collection):
         try:
             res = collection.insert_one(document)
         except pymongo.errors.DuplicateKeyError:
-            logger.debug("Document %s déjà présent", document['_id'])
+            logger.debug("Document déjà présent dans %s - %s", collection.name, document['_id'])
             return None
         except pymongo.errors.WriteError as err:
             logger.error(err)
             return None
 
-        logger.debug("Document %s inséré unitairement", res.inserted_id)
+        logger.debug("Document inséré unitairement dans %s - %s", collection.name, res.inserted_id)
         return res.inserted_id
 
 

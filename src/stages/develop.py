@@ -3,10 +3,10 @@
 Fichier pour tester les développements en cours
 """
 import logging
-import multiprocessing
-import tqdm
-from src.stages import fouille
-from src.modules import importation
+import pandas as pd
+import sqlalchemy
+from src.modules import graph
+from src.modules import cmd_psql
 
 
 logger = logging.getLogger(__name__)
@@ -19,17 +19,27 @@ def main(conf):
     :return: None
     """
     logger.info("DEVELOPPEMENT")
-    # fouille.databases_init(conf)
 
-    ham_test = "./project_data/spamassassin/easy_ham"
-    files_stack = {'ham': importation.get_files(ham_test)}
-    pool_args = [(file, cat) for cat, f_list in files_stack.items() for file in list(f_list)]
-    with multiprocessing.Pool(conf.infra['cpu_available']) as pool:
-        result = list(tqdm.tqdm(pool.imap(fouille.fouille_doc, pool_args),
-                                desc="Création des documents",
-                                leave=False,
-                                disable=conf.args['progress_bar']))
-    result = [doc for doc in result if doc]
-    logger.info("Documents créés - %s", len(result))
+    psql_uri = (f"postgresql://{conf.infra['psql']['user']}:{conf.infra['psql']['pass']}@"
+                f"{conf.infra['psql']['host']}:{conf.infra['psql']['port']}/"
+                f"{conf.infra['psql']['db']}")
+    engine = sqlalchemy.create_engine(psql_uri)
 
-    fouille.mise_en_base(result, conf)
+    query = '''SELECT
+    c.nom, l.url, l.mail, l.tel, l.nombre, l.prix
+    FROM liens l 
+    JOIN messages m ON l.id_message = m.id_message
+    JOIN categories c ON m.id_categorie = c.id_categorie;
+    '''
+    colonnes = ['categorie', 'url', 'mail', 'tel', 'nombre', 'prix']
+    df = pd.read_sql_query(query, engine)
+    engine.dispose()
+    df.columns = colonnes
+    print(df[df['categorie']=='ham'].describe())
+    print(df[df['categorie']=='spam'].describe())
+    pivot = df.pivot_table(
+        index='categorie',
+        values=['url', 'mail', 'tel', 'nombre', 'prix'],
+        aggfunc=['mean', graph.q50, graph.q90,'max']
+    )
+    print(pivot)

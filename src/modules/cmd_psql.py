@@ -6,8 +6,25 @@ Module de liaison avec une base postgresSQL
 
 import logging
 import psycopg2
+import sqlalchemy
 
 logger = logging.getLogger(__name__)
+
+
+def create_engine(user, passwd, host, port, dbname):
+    """
+    Connexion a la base de donnees Postgres pour pandas
+    Penser à fermer la connexion
+    :param user: <str> utilisateur autoriser à pusher les données
+    :param passwd: <str> mot de passe
+    :param host: <str> localisation réseau de la bdd
+    :param port: <str> port de connexion
+    :param dbname: <str> nom de la base de donnees
+    :return: <psycopg2.extension.connection> objet connexion à la bdd
+    """
+    uri = f"postgresql://{user}:{passwd}@{host}:{port}/{dbname}"
+    engine = sqlalchemy.create_engine(uri)
+    return engine
 
 
 def connect_db(user, passwd, host, port, dbname=""):
@@ -80,19 +97,48 @@ def create_index(client_psql, nom, table, colonne):
     exec_query(client_psql, query)
 
 
-def insert_data(client_psql, table, data):
+def insert_data_one(client_psql, table, data):
     """
     Insérer les données d'un dictionnaire dans une table de la base de donnees PSQL
     Les clés du dictionnaire doivent correspondre aux colonnes de la table.
     :param client_psql: <psycopg2.extension.connection> object connexion vers une base de donnee
     :param table: <str> La table dans à remplir
-    :param data: <dict> {colonne: valeur}
+    :param data: <dict> {colonne : valeur}
     :return: None
     """
     cols = ','.join([str(c) for c in data.keys()])
     vals = ','.join([str(v) if not isinstance(v, str) else f"'{v}'" for v in data.values()])
     query = f"INSERT INTO {table}({cols}) VALUES ({vals})"
 
+    exec_query(client_psql, query)
+
+
+def insert_data_many(client_psql, table, data):
+    """
+    Insérer les données sur plusieurs lignes
+    :param client_psql: <psycopg2.extension.connection> object connexion vers une base de donnee
+    :param table: <str> La table dans à remplir
+    :param data: <list> [{col1 : val1, col2 : val2}, ...]
+    """
+    if len(data) == 1:
+        insert_data_one(client_psql, table, data[0])
+        return
+
+    data = [dict(sorted(line.items())) for line in data]
+    keys = data[0].keys()
+    for line in data[1:]:
+        if keys != line.keys():
+            logger.error("Impossible d'insérer les données dans la table %s les clés entre les"
+                         " lignes ne sont pas identiques", table)
+            return
+
+    lines_values = []
+    for line in data:
+        vals = ','.join([str(v) if not isinstance(v, str) else f"'{v}'" for v in line.values()])
+        vals = f"({vals})"
+        lines_values.append(vals)
+
+    query = f"INSERT INTO {table} ({','.join(list(keys))}) VALUES {', '.join(lines_values)}"
     exec_query(client_psql, query)
 
 

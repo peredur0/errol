@@ -161,6 +161,12 @@ def mise_en_base(result, conf):
     db = cli_mongo[conf.infra['mongo']['db']]
     collection = db[conf.infra['mongo']['collection']]
 
+    cli_psql = cmd_psql.connect_db(user=conf.infra['psql']['user'],
+                                   passwd=conf.infra['psql']['pass'],
+                                   host=conf.infra['psql']['host'],
+                                   port=conf.infra['psql']['port'],
+                                   dbname=conf.infra['psql']['db'])
+
     for chunk in tqdm.tqdm(chunked,
                            desc="Mise en base des documents",
                            leave=False,
@@ -177,10 +183,12 @@ def mise_en_base(result, conf):
             psql_chunk.append(p_entry)
 
         inserted = cmd_mongo.insert_documents(mongo_chunk, collection)
-        psql_chunk = [doc for doc in psql_chunk if doc['hash'] in inserted]
 
+        psql_chunk = {doc['hash']: doc for doc in psql_chunk if doc['hash'] in inserted}
+        psql_insert(psql_chunk, cli_psql)
 
     cli_mongo.close()
+    cli_psql.close()
 
 
 def get_stats(conf):
@@ -235,7 +243,7 @@ def zipf_stats(conf):
     return zipf_data
 
 
-def link_stats(conf):
+def link_stats_old(conf):
     """
     Génère les statistiques des liens.
     :param conf: <Settings>
@@ -258,3 +266,91 @@ def link_stats(conf):
     client.close()
 
     return link_data
+
+
+def link_stats(conf):
+    """
+    Génère les statistiques des liens.
+    :param conf: <Settings>
+    :return: <Dataframe>
+    """
+    client = cmd_psql.create_engine(user=conf.infra['psql']['user'],
+                                    passwd=conf.infra['psql']['pass'],
+                                    host=conf.infra['psql']['host'],
+                                    port=conf.infra['psql']['port'],
+                                    dbname=conf.infra['psql']['db'])
+
+    query = '''SELECT
+        c.nom, l.url, l.mail, l.tel, l.nombre, l.prix
+        FROM liens l 
+        JOIN messages m ON l.id_message = m.id_message
+        JOIN categories c ON m.id_categorie = c.id_categorie;
+        '''
+
+    link_data = pd.read_sql_query(query, client)
+    link_data.columns = ['categorie', 'url', 'mail', 'tel', 'nombre', 'prix']
+    client.dispose()
+    link_data = link_data.pivot_table(
+        index='categorie',
+        values=['url', 'mail', 'tel', 'nombre', 'prix'],
+        aggfunc=['mean', graph.q50, graph.q90, 'max']
+    )
+
+    logger.info("Statistiques des liens\n%s", link_data)
+    return link_data
+
+
+liens_fields = ['url', 'mail', 'tel', 'nombre', 'prix']
+
+
+def psql_insert(psql_chunk, client):
+    """
+    Insertion des documents des de la fouille dans les tables PSQL
+    :param psql_chunk: <dict>
+    :param client: <psycopg2.connection>
+    :return: <None>
+    """
+    if not psql_chunk:
+        logger.debug("Aucunes données disponibles suite à l'insertion dans Mongo")
+        return
+
+    table = 'categories'
+    exists_cat = {line['nom']: line['id_categorie']
+                  for line in cmd_psql.get_data(client, table, ['nom', 'id_categorie'])}
+    doc_cat = set(doc['categorie'] for doc in psql_chunk.values())
+    to_insert = [cat for cat in doc_cat if cat not in exists_cat]
+
+    if to_insert:
+        cmd_psql.insert_data_many(client, table, [{'nom': cat} for cat in to_insert])
+        exists_cat = {line['nom']: line['id_categorie']
+                      for line in cmd_psql.get_data(client, table, ['nom', 'id_categorie'])}
+        logger.info('Catégories insérées dans la table %s - %s', table, to_insert)
+
+    hashes = [f"'{key}'" for key in psql_chunk.keys()]
+    clause = f"hash in ({','.join(hashes)})"
+
+    table = "messages"
+    exists = [line['hash'] for line in cmd_psql.get_data(client, table, ['hash'], clause)]
+    to_insert = [{'hash': hash_mess, 'id_categorie': exists_cat.get(doc['categorie'])}
+                 for hash_mess, doc in psql_chunk.items() if hash_mess not in exists]
+    if to_insert:
+        logger.info("Documents a insérés dans la table %s - %s", table, len(to_insert))
+        cmd_psql.insert_data_many(client, table, to_insert)
+    exists_mess = {line['hash']: line['id_message']
+                   for line in cmd_psql.get_data(client, table, ['hash', 'id_message'], clause)}
+
+    table = "liens"
+    exists = set(line['id_message'] for
+                 line in cmd_psql.get_data(client, table, ['id_message']))
+    to_insert = []
+    for hash_mess, document in psql_chunk.items():
+        if hash_mess in exists:
+            continue
+        tmp_doc = {key.lower(): value for key, value in document.items()
+                   if key.lower() in liens_fields}
+        tmp_doc['id_message'] = exists_mess[hash_mess]
+        to_insert.append(tmp_doc)
+
+    if to_insert:
+        logger.info("Documents a insérés dans la table %s - %s", table, len(to_insert))
+        cmd_psql.insert_data_many(client, table, to_insert)

@@ -3,6 +3,7 @@ nltk
 matplotlib
 numpy
 psycopg2
+sqlalchemy
 tqdm
 elasticsearch
 beautifulsoup4

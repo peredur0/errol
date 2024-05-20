@@ -46,6 +46,7 @@ docker_stop: ./src/infra/compose.yaml
 
 docker_prune:
 	cd ./src/infra/; docker compose down -v --rmi local --remove-orphans
+	sudo rm -rf ./project_database/mongo/*
 	docker image prune -f
 	docker network prune -f
 	docker volume prune -f
