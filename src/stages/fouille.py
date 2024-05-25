@@ -122,8 +122,8 @@ def fouille_doc(pool_args):
 
     try:
         lang = langdetect.detect(body)
-    except langdetect.lang_detect_exception.LangDetectException:
-        logger.error("Echec de détection de la langue pour %s", file)
+    except langdetect.lang_detect_exception.LangDetectException as err:
+        logger.error("Echec de détection de la langue pour %s %s", file, err)
         return None
 
     if lang != 'en':

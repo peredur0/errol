@@ -66,7 +66,8 @@ pattern_tel2 = re.compile(r'\+\d+([ .-]?\d)+')    # +34 936 00 23 23
 
 
 def change_lien(texte, liens):
-    """Sauvegarde les liens dans un dictionnaire séparé et les supprime du texte
+    """
+    Sauvegarde les liens dans un dictionnaire séparé et les supprime du texte
     :param texte: <str>
     :param liens: <dict> dictionnaire des liens
     :return: <str> - texte nettoyé
