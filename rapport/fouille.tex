@@ -370,6 +370,7 @@ advantage of the trusted zone file transfer option.
     Les traitements précédents ont créé une liste de dictionnaires python contenant les valeurs à sauvegarder (document).
     Chaque document répond au schéma défini dans le tableau~\ref{tab:mapping_fouille} \\
     \begin{table}[H]
+        \centering
         \begin{tabular}{lccr}
             Clé & Mongo & PSQL & Description\\
             \hline
@@ -403,10 +404,10 @@ advantage of the trusted zone file transfer option.
     \paragraph{Wrapper en python}
         La communication entre le programme et les bases de données se fait au moyen des modules suivants :
         \begin{itemize}
-            \item MongoDB - pymongo (bibliothèque officielle maintenue par mongoDB)
-            \item PSQL - psycopg2 (bibliothèque open-source), utilisée pour les requêtes simples
-            \item PSQL - sqlalchemy (bibliothèque open-source), utilisée pour les requêtes complexes
-            \item SQLite - sqlite3 (bibliothèque standard de python)
+            \item[-] MongoDB - pymongo (bibliothèque officielle maintenue par mongoDB)
+            \item[-] PSQL - psycopg2 (bibliothèque open-source), utilisée pour les requêtes simples
+            \item[-] PSQL - sqlalchemy (bibliothèque open-source), utilisée pour les requêtes complexes
+            \item[-] SQLite - sqlite3 (bibliothèque standard de python)
         \end{itemize}
 
         Des modules internes au programme ont été développer pour simplifier l'utilisation des modules d'interaction avec les bases de données.
@@ -415,6 +416,7 @@ advantage of the trusted zone file transfer option.
     \paragraph{Problèmes éventuels}
         Lors de l'insertion les cas suivants sont susceptibles d'arriver si les deux bases n'ont pas été correctement nettoyées.\\
         \begin{table}[H]
+            \centering
             \begin{tabular}{|p{4cm}|p{4cm}|p{7cm}|}
                 \hline
                 Situation & Raison & Solution\\
@@ -433,9 +435,9 @@ advantage of the trusted zone file transfer option.
         Les données présentent dans cette base permettent de suivre l'évolution de certaines métriques lors des différentes étapes du nettoyage.
         Lors de chaque étape de la phase 1 (Récolte, Création des documents, Mise en base), je calcule pour les HAM, SPAM et (HAM+SPAM) les éléments suivants :
         \begin{itemize}
-            \item mails - nombre de mails
-            \item mots - nombre de mots dans tout le corpus
-            \item mots\_uniques - nombre de mots uniques dans tout le corpus
+            \item[-] mails - nombre de mails
+            \item[-] mots - nombre de mots dans tout le corpus
+            \item[-] mots\_uniques - nombre de mots uniques dans tout le corpus
         \end{itemize}
 
         Ces données me permettent d'estimer la quantité de données nettoyées durant cette phase.
@@ -447,7 +449,96 @@ advantage of the trusted zone file transfer option.
         \end{figure}
 
 \subsection*{Analyse}
+    L'exécution du programme donne les informations présentées dans le tableau~\ref{tab:fouillestats}.
+    \begin{table}[H]
+        \centering
+        \begin{tabular}{l|rrr|rrr|rrr}
+            & \multicolumn{3}{c}{mails} & \multicolumn{3}{c}{mot} & \multicolumn{3}{c}{mots uniques}\\
+            étapes & globale & spam & ham & globale & spam & ham & globale & spam & ham\\
+            \hline
+            récolte & 5798 & 1897 & 3901 & 2385120 & 916756 & 1468364 & 262614 & 129090 & 133524\\
+            création & 5662 & 1786 & 3876 & 1223062 & 589364 & 633698 & 99837 & 40676 & 59161\\
+            mise en base & 5334 & 1530 & 3804 & 1163777 & 533686 & 630091 & 99834 & 40676 & 59158\\
+        \end{tabular}
+        \caption{Données statistiques de la fouille}
+        \label{tab:fouillestats}
+    \end{table}
+    
+    La figure~\ref{fig:dashFouille} montre un aperçu des données statistiques récoltées durant cette première phase.
+    Les 3 premiers graphiques montrent l'évolution du nombre de documents, de mots et de mots uniques en fonction des étapes intermédiaires.\\
+    Cette visualisation permet de faire les observations suivantes :
+    \begin{itemize}
+        \item[-] La diminution des documents spam est plus importante que celle des ham
+		\item[-] Le nombre de mots uniques ne diminue plus après la création de document
+		\item[-] La diminution du nombre de mots est plus importante dans les ham que dans les spam
+		\item[-] Le nombre de mots uniques est plus important dans les ham que dans les spam
+    \end{itemize}
+    Après la phase de récolte, on remarque qu'il y a un nombre plus important de document en double dans la catégorie \emph{spam}.
+    Il y a également une réduction importante du nombre de mots ainsi que du nombre de mots uniques dans les \emph{ham}.
+    Cette réduction peut s'expliquer par le nettoyage du corps des mails :
+    \begin{itemize}
+        \item Retrait des réponses
+        \item Retrait de certaines ponctuations
+        \item Suppression des balises HTML et enriched text
+        \item Retrait des liens, et nombres
+    \end{itemize}
+
+    Enfin, on peut voir que les \emph{ham} utilisent plus de mots uniques que les \emph{spam}.
+    Il est donc possible que le vocabulaire des \emph{spam} soit plus restreint.
+    \begin{figure}[H]
+        \includegraphics[width=\linewidth]{img/fouilleStats}
+        \caption{Tableau de bord de la fouille}
+        \label{fig:dashFouille}
+    \end{figure}
+
+    À l'issue de ces traitements, la proportion dans notre dataset ham/spam est d'environ 70/30.
+    On voit aussi que la distribution du Zipf est globalement respectée.
+    Il est ainsi fortement probable que notre dataset respecte les caractéristiques linguistiques naturelles.\\
+
+    L'extraction des liens informations numériques donne les statistiques du tableau~\ref{tab:p1liens}.
+    \begin{table}[H]
+        \centering
+        \begin{tabular}{l|rr|rr|rr|rr|rr}
+            & \multicolumn{2}{c}{url} & \multicolumn{2}{c}{mail} & \multicolumn{2}{c}{tel} & \multicolumn{2}{c}{prix} & \multicolumn{2}{c}{nombre}\\
+            & spam & ham & spam & ham & spam & ham & spam & ham & spam & ham\\
+            \hline
+            moyenne & 5.25 & 3.83 & 1.01 & 1.13 & 0.06 & 0.20 & 0.81 & 0.03 & 30.36 & 7.1\\
+            médiane & 3 & 2 & 0 & 1 & 0 & 0 & 0 & 0 & 7 & 4\\
+            90\% & 9 & 6 & 2 & 3 & 0 & 1 & 2 & 0 & 35 & 14\\
+            maximum & 295 & 470 & 69 & 20 & 67 & 25 & 29 & 17 & 15801 & 731\\
+        \end{tabular}
+        \caption{Statistiques sur les liens et informations numériques}
+        \label{tab:p1liens}
+    \end{table}
+    Les données statistiques sur les liens ne permettent pas mettre en avant une différence franche dans l'utilisation de ces éléments dans les catégories observées.
+    Seul la présence de nombres ou d'URL seraient éventuellement susceptible d'apporter une aide à la catégorisation.
 
 
 \subsection*{Choix techniques}
+    \paragraph{Langage de programmation}
+        Python a été choisi pour développer ce programme pour les raisons énoncées ci-dessous :
+        \begin{itemize}
+            \item[-] Large choix de modules, dont plusieurs spécialisés dans le traitement de données
+            \item[-] Langage simple et flexible
+            \item[-] Facilement portable et executable avec la fourniture des environnements virtuel
+        \end{itemize}
 
+    \paragraph{Métriques}
+        L'utilisation du nombre de documents, de mots et de mots uniques pour mesurer la performance de cette phase a été commandée par le cours.
+        Il n'y a pas eu de difficultés majeures sur cette partie.
+        Ces données ne sont pas conservées au fur et à mesure des diverses importations.
+        Je n'ai pas jugé pertinent de les employer lors des traitements futurs. \\
+
+        La recherche des apparitions d'adresse mail, de liens url, de numéros de téléphone, de prix et de nombres est une idée personnelle.
+        Je voulais voir si ces éléments étaient susceptible d'être discriminant pour la classification.
+        Les résultats ne sont pas aussi marqués que je ne l'aurais cru.
+        Je pense qu'il aurait été possible d'améliorer la justesse de ces données en travaillant sur plus de cas possible.
+        Ou en analysant plus en profondeur les substitutions effectuées notamment sur les nombres.\\
+        Cela étant la substitution et effacement de ces éléments dans le corps de texte peut répondre à une nécessité d'anonymisation.
+        De plus la suppression des liens URL évite de conserver et de rendre accessible des liens potentiellement frauduleux.\\
+
+        Le développement du code pour la distribution de ZIPF a été réalisée suite à une discussion avec le professeur.
+        Initialement, je souhaitais également tester cette distribution sur chaque message individuellement.
+        Mais la quantité de mots par message n'est peut-être pas suffisant pour obtenir des résultats probants.
+        J'ai dû me renseigner beaucoup pour arriver à comprendre l'équation sous-jacente et comment je pouvais la coder de manière efficace et visuelle.
+        Vous pouvez vous le résultat de ce travail dans la section
