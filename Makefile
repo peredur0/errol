@@ -7,7 +7,7 @@ py_version_major_ok:=$(shell [ $(py_version_major) -eq 3 ] && echo true)
 py_version_minor_ok:=$(shell [ $(py_version_minor) -ge 10 ] && echo true)
 
 # define the name of the virtual environment directory
-VENV := venv-fl
+VENV := .venv
 PYTHONPATH := $(shell pwd)
 
 # default target, when make executed without arguments

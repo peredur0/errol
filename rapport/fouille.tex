@@ -541,4 +541,30 @@ advantage of the trusted zone file transfer option.
         Initialement, je souhaitais également tester cette distribution sur chaque message individuellement.
         Mais la quantité de mots par message n'est peut-être pas suffisant pour obtenir des résultats probants.
         J'ai dû me renseigner beaucoup pour arriver à comprendre l'équation sous-jacente et comment je pouvais la coder de manière efficace et visuelle.
-        Vous pouvez vous le résultat de ce travail dans la section
+        Vous pouvez voir le résultat de ce travail dans l'annexe~\ref{sec:devZipf}.
+
+\newpage
+\subsection*{Exemple du programme de fouille}
+    \begin{verbatimtab}
+$ make venv
+$ make docker_start
+cd ./src/infra/; docker compose up -d
+[+] Running 3/3
+ ✔ Network infra_default    Created                                                                                                                                                                           0.1s
+ ✔ Container infra-mongo-1  Started                                                                                                                                                                           0.5s
+ ✔ Container infra-pgdb-1   Started
+
+$ source .venv/bin/activate
+(.venv)$ ./errol.py fouille -g \
+        -a ./project_data/spamassassin/easy_ham \
+           ./project_data/spamassassin/easy_ham_2 \
+        -p ./project_data/spamassassin/spam \
+           ./project_data/spamassassin/spam_2
+    \end{verbatimtab}
+
+    Il est possible d'accéder aux bases de données avec les commandes suivantes:
+    \begin{verbatimtab}
+$ sqlite3 project_database/sqlite/metrics.db
+$ psql -h localhost -p 5432 errol psql_errol
+$ mongosh -u mongo_errol -p <MOT DE PASSE> errol
+    \end{verbatimtab}

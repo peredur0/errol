@@ -305,7 +305,7 @@ liens_fields = ['url', 'mail', 'tel', 'nombre', 'prix']
 
 def psql_insert(psql_chunk, client):
     """
-    Insertion des documents des de la fouille dans les tables PSQL
+    Insertion des documents de la fouille dans les tables PSQL
     :param psql_chunk: <dict>
     :param client: <psycopg2.connection>
     :return: <None>
@@ -336,6 +336,7 @@ def psql_insert(psql_chunk, client):
     if to_insert:
         logger.info("Documents a insérés dans la table %s - %s", table, len(to_insert))
         cmd_psql.insert_data_many(client, table, to_insert)
+
     exists_mess = {line['hash']: line['id_message']
                    for line in cmd_psql.get_data(client, table, ['hash', 'id_message'], clause)}
 
@@ -344,12 +345,25 @@ def psql_insert(psql_chunk, client):
                  line in cmd_psql.get_data(client, table, ['id_message']))
     to_insert = []
     for hash_mess, document in psql_chunk.items():
-        if hash_mess in exists:
+        if exists_mess[hash_mess] in exists:
             continue
         tmp_doc = {key.lower(): value for key, value in document.items()
                    if key.lower() in liens_fields}
         tmp_doc['id_message'] = exists_mess[hash_mess]
         to_insert.append(tmp_doc)
+
+    if to_insert:
+        logger.info("Documents a insérés dans la table %s - %s", table, len(to_insert))
+        cmd_psql.insert_data_many(client, table, to_insert)
+
+    table = "status"
+    exists = set(line['id_message'] for
+                 line in cmd_psql.get_data(client, table, ['id_message']))
+    to_insert = []
+    for hash_mess, document in psql_chunk.items():
+        if exists_mess[hash_mess] in exists:
+            continue
+        to_insert.append({'id_message': exists_mess[hash_mess], 'initial': 'OK'})
 
     if to_insert:
         logger.info("Documents a insérés dans la table %s - %s", table, len(to_insert))

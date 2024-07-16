@@ -80,8 +80,13 @@ def create_table(client_psql, schema):
         cursor.execute(query)
     except psycopg2.Error as err:
         logger.error(err)
-    else:
-        logger.info("Table '%s' créée", schema['name'])
+        return
+
+    logger.info("Table '%s' créée", schema['name'])
+
+    if 'index' in schema and schema['index']:
+        for index in schema['index']:
+            create_index(client_psql, index['name'], schema['name'], index['column'])
 
 
 def create_index(client_psql, nom, table, colonne):
@@ -93,7 +98,7 @@ def create_index(client_psql, nom, table, colonne):
     :param colonne: <str> colonne cible
     :return:
     """
-    query = f"CREATE UNIQUE INDEX {nom} ON {table}({colonne})"
+    query = f"CREATE INDEX {nom} ON {table}({colonne})"
     exec_query(client_psql, query)
 
 

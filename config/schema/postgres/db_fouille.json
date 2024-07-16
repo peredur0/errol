@@ -43,6 +43,12 @@
                 "reference": "categories(id_categorie)",
                 "on_delete": "SET NULL"
               }
+            ],
+            "index": [
+              {
+                "name": "IX_hash",
+                "column": "hash"
+              }
             ]
           },
           {
@@ -71,6 +77,35 @@
               {
                 "name": "prix",
                 "type": ["INT"]
+              }
+            ],
+            "foreign_keys": [
+              {
+                "name": "fk_liens",
+                "field": "id_message",
+                "reference": "messages(id_message)",
+                "on_delete": "CASCADE"
+              }
+            ]
+          },
+          {
+            "name": "status",
+            "fields": [
+              {
+                "name": "id_message",
+                "type": ["INT"]
+              },
+              {
+                "name": "initial",
+                "type": ["VARCHAR"]
+              },
+              {
+                "name": "stats",
+                "type": ["VARCHAR"]
+              },
+              {
+                "name": "nlp",
+                "type": ["VARCHAR"]
               }
             ],
             "foreign_keys": [
