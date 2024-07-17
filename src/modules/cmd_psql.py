@@ -164,6 +164,28 @@ def get_data(client_psql, table, champs, clause=None):
     return [dict(zip(champs, ligne)) for ligne in result]
 
 
+def get_unique_data(client_psql, table, champ, clause):
+    """
+    Récupère les données d'un seul champ et uniquement la première ligne.
+    :param client_psql: <psycopg2.extension.connection> object connexion vers une base de donnee.
+    :param table: <str> table à scroller.
+    :param champ: <list> champs à récupérer.
+    :param clause: <str> Clause WHERE
+    :return: <list> dict par ligne
+    """
+    data = get_data(client_psql, table, [champ], clause)
+
+    if not data:
+        return None
+
+    if len(data) > 1:
+        logger.warning("Plusieurs lignes sont disponible '%s' - affiner la clause '%s'",
+                       champ, clause)
+        return None
+
+    return data[0].get(champ)
+
+
 def exec_query(client_psql, query):
     """ Execute une query dans la base PSQL
     :param client_psql: <psycopg2.extension.connection> object connexion vers une base de donnee

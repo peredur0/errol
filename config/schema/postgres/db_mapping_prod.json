@@ -35,7 +35,7 @@
         "fk_stats_mot": ["id_message", "messages(id_message)", "CASCADE"]
       }
     },
-    "stat_ponct": {
+    "stats_ponctuation": {
       "id_message": ["INT"],
       "point": ["INT"],
       "virgule": ["INT"],
@@ -49,7 +49,7 @@
         "fk_stats_ponct": ["id_message", "messages(id_message)", "CASCADE"]
       }
     },
-    "zipf": {
+    "stats_zipf": {
       "id_message": ["INT"],
       "constante": ["INT"],
       "coefficient": ["REAL"],
@@ -58,7 +58,7 @@
         "fk_zipf": ["id_message", "messages(id_message)", "CASCADE"]
       }
     },
-    "hapax": {
+    "stats_hapax": {
       "id_message": ["INT"],
       "h_nombre": ["INT"],
       "ratio_unique": ["REAL"],
