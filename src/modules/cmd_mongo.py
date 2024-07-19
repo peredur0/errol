@@ -100,7 +100,7 @@ def get_all_documents(collection, include=None):
     if isinstance(include, list):
         include = {field: 1 for field in include}
     else:
-        include = {'include': 1}
+        include = {include: 1}
     try:
         with pymongo.timeout(15):
             return list(collection.find({}, include))

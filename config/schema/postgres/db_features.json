@@ -1,0 +1,159 @@
+{
+  "databases": [
+    {
+      "name": "errol",
+      "tables": {
+        "new": [
+          {
+            "name": "features_ponctuations",
+            "fields": [
+              {
+                "name": "id_message",
+                "type": ["INT", "UNIQUE", "NOT NULL"]
+              },
+              {
+                "name": "point",
+                "type": ["INT"]
+              },
+              {
+                "name": "virgule",
+                "type": ["INT"]
+              },
+              {
+                "name": "exclamation",
+                "type": ["INT"]
+              },
+              {
+                "name": "interrogation",
+                "type": ["INT"]
+              },
+              {
+                "name": "tabulation",
+                "type": ["INT"]
+              },
+              {
+                "name": "espace",
+                "type": ["INT"]
+              },
+              {
+                "name": "ligne",
+                "type": ["INT"]
+              },
+              {
+                "name": "ligne_vide",
+                "type": ["INT"]
+              }
+            ],
+            "foreign_keys": [
+              {
+                "name": "fk_ponctuations",
+                "field": "id_message",
+                "reference": "messages(id_message)",
+                "on_delete": "CASCADE"
+              }
+            ]
+          },
+          {
+            "name": "features_mots",
+            "fields": [
+              {
+                "name": "id_message",
+                "type": ["INT", "UNIQUE", "NOT NULL"]
+              },
+              {
+                "name": "char_minuscules",
+                "type": ["INT"]
+              },
+              {
+                "name": "char_majuscules",
+                "type": ["INT"]
+              },
+              {
+                "name": "mots",
+                "type": ["INT"]
+              },
+              {
+                "name": "mots_uniques",
+                "type": ["INT"]
+              },
+              {
+                "name": "mots_majuscules",
+                "type": ["INT"]
+              },
+              {
+                "name": "mots_capitalizes",
+                "type": ["INT"]
+              }
+            ],
+            "foreign_keys": [
+              {
+                "name": "fk_mots",
+                "field": "id_message",
+                "reference": "messages(id_message)",
+                "on_delete": "CASCADE"
+              }
+            ]
+          },
+          {
+            "name": "features_zipf",
+            "fields": [
+              {
+                "name": "id_message",
+                "type": ["INT", "UNIQUE", "NOT NULL"]
+              },
+              {
+                "name": "constante",
+                "type": ["INT"]
+              },
+              {
+                "name": "coefficient",
+                "type": ["REAL"]
+              },
+              {
+                "name": "taux_erreur",
+                "type": ["REAL"]
+              }
+            ],
+            "foreign_keys": [
+              {
+                "name": "fk_zipf",
+                "field": "id_message",
+                "reference": "messages(id_message)",
+                "on_delete": "CASCADE"
+              }
+            ]
+          },
+          {
+            "name": "features_hapax",
+            "fields": [
+              {
+                "name": "id_message",
+                "type": ["INT", "UNIQUE", "NOT NULL"]
+              },
+              {
+                "name": "ratio_mots_uniques",
+                "type": ["REAL"]
+              },
+              {
+                "name": "ratio_texte",
+                "type": ["REAL"]
+              },
+              {
+                "name": "nombre_hapax",
+                "type": ["INT"]
+              }
+            ],
+            "foreign_keys": [
+              {
+                "name": "fk_hapax",
+                "field": "id_message",
+                "reference": "messages(id_message)",
+                "on_delete": "CASCADE"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

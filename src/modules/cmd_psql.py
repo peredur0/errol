@@ -3,7 +3,7 @@
 """
 Module de liaison avec une base postgresSQL
 """
-
+import json
 import logging
 import psycopg2
 import sqlalchemy
@@ -200,5 +200,62 @@ def exec_query(client_psql, query):
             return cursor.fetchall()
         return []
     except psycopg2.Error as err:
-        logger.error("Erreur d'execution de la requete : %s\n%s", err, query)
+        logger.error("Erreur d'execution de la requete : %s - %s", err, query)
         return []
+
+
+def update(client, table, data, clause=None):
+    """
+    Met à jour les données d'une table
+    :param client: <psycopg2.extension.connection>
+    :param table: <str>
+    :param data: <dict>
+    :param clause: <str>
+    """
+    values = []
+    for key, value in data.items():
+        value = str(value) if not isinstance(value, str) else f"'{value}'"
+        values.append(f"{key} = {value}")
+
+    query = f"UPDATE {table} SET {','.join(values)}"
+    if clause:
+        query += f" WHERE {clause}"
+
+    exec_query(client, query)
+
+
+def apply_databases_updates(conf, file):
+    """
+    Met à jour ou initialise les tables selon un fichier
+    :param conf: <Settings>
+    :param file: <str>
+    """
+    with open(file, 'r', encoding='utf-8') as schema_file:
+        schema = json.load(schema_file)
+
+    for database in schema['databases']:
+        client = connect_db(user=conf.infra['psql']['user'],
+                            passwd=conf.infra['psql']['pass'],
+                            host=conf.infra['psql']['host'],
+                            port=conf.infra['psql']['port'],
+                            dbname=database['name'])
+
+        if not client:
+            logger.error("Echec de connexion sur la base %s", database['name'])
+            continue
+
+        for ops in database['tables']:
+            match ops:
+                case 'new':
+                    new_tables = database['tables'][ops]
+                    logger.info("Tables à créer - %i", len(new_tables))
+                    for table in new_tables:
+                        create_table(client, table)
+                case 'delete':
+                    pass
+                case 'update':
+                    pass
+                case _:
+                    logger.warning("Opération non référencée - %s", ops)
+
+        client.close()

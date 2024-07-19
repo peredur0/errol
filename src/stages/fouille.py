@@ -6,7 +6,6 @@ import hashlib
 import json
 import logging
 import multiprocessing
-import sys
 
 import langdetect
 import tqdm
@@ -50,6 +49,7 @@ def main(conf):
         result = list(tqdm.tqdm(pool.imap(fouille_doc, pool_args),
                                 desc="Création des documents",
                                 leave=False,
+                                total=len(pool_args),
                                 disable=conf.args['progress_bar']))
     result = [doc for doc in result if doc]
     logger.info("Documents créés - %s", len(result))
@@ -80,26 +80,7 @@ def databases_init(conf):
     cli_sqlite.close()
 
     logger.info("Création de la base psql")
-    with open(conf.infra['psql']['schema']['fouille'], 'r', encoding='utf-8') as schema_file:
-        schema = json.load(schema_file)
-
-    cli_psql = cmd_psql.connect_db(user=conf.infra['psql']['user'],
-                                   passwd=conf.infra['psql']['pass'],
-                                   host=conf.infra['psql']['host'],
-                                   port=conf.infra['psql']['port'],
-                                   dbname=conf.infra['psql']['db'])
-    if not cli_psql:
-        sys.exit(1)
-
-    for db_schema in schema['databases']:
-        if db_schema['name'] == "errol":
-            new_tables = db_schema['tables']['new']
-            logger.info("Tables à créer - %i", len(new_tables))
-            for table in new_tables:
-                cmd_psql.create_table(cli_psql, table)
-            break
-
-    cli_psql.close()
+    cmd_psql.apply_databases_updates(conf, conf.infra['psql']['schema']['fouille'])
 
 
 def fouille_doc(pool_args):
@@ -133,7 +114,7 @@ def fouille_doc(pool_args):
     new_doc = {
         'hash': hashlib.md5(body.encode()).hexdigest(),
         'categorie': cat.lower(),
-        'sujet': sujet,
+        'sujet': sujet if sujet else 'null',
         'expediteur': exp,
         'message': body,
         'langue': lang,
@@ -154,7 +135,7 @@ def mise_en_base(result, conf):
     :param conf: <Settings>
     :return: <None>
     """
-    chunk_size = 100
+    chunk_size = 50
     chunked = [result[i:i + chunk_size] for i in range(0, len(result), chunk_size)]
 
     cli_mongo = cmd_mongo.connect(conf)

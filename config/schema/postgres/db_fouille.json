@@ -3,7 +3,6 @@
     {
       "name": "errol",
       "tables": {
-        "unchanged": [],
         "delete": [],
         "update": [],
         "new": [
@@ -56,7 +55,7 @@
             "fields": [
               {
                 "name": "id_message",
-                "type": ["INT"]
+                "type": ["INT", "UNIQUE", "NOT NULL"]
               },
               {
                 "name": "url",
@@ -93,19 +92,19 @@
             "fields": [
               {
                 "name": "id_message",
-                "type": ["INT"]
+                "type": ["INT", "UNIQUE", "NOT NULL"]
               },
               {
                 "name": "initial",
-                "type": ["VARCHAR"]
+                "type": ["CHAR(3)"]
               },
               {
-                "name": "stats",
-                "type": ["VARCHAR"]
+                "name": "features",
+                "type": ["CHAR(3)"]
               },
               {
                 "name": "nlp",
-                "type": ["VARCHAR"]
+                "type": ["CHAR(3)"]
               }
             ],
             "foreign_keys": [
