@@ -2,6 +2,7 @@
 """
 Code pour la phase de recherche de caractéristiques
 """
+import datetime
 import re
 import logging
 import multiprocessing
@@ -82,9 +83,9 @@ def features_pipeline(pool_args):
     data['id_message'] = psql_data[0]['id_message']
 
     clause = f"id_message = {data['id_message']}"
-    if features_status := cmd_psql.get_unique_data(client_psql, 'status', 'features', clause):
+    if features_ctrl := cmd_psql.get_unique_data(client_psql, 'controle', 'features', clause):
         logger.debug("Message %s déjà traité pour la partie features - %s", data['hash'],
-                     features_status)
+                     features_ctrl)
         return None
 
     raw_message = entry['message']
@@ -124,10 +125,10 @@ def mise_en_base(result, conf):
                 cmd_psql.insert_data_one(cli_psql, table, to_insert)
                 logger.debug("Data %s insérée dans %s", psql_id, table)
 
-            to_update = {"features": "OK"}
-            cmd_psql.update(cli_psql, 'status', to_update, clause=f'id_message = {psql_id}')
+            to_update = {"features": str(datetime.date.today())}
+            cmd_psql.update(cli_psql, 'controle', to_update, clause=f'id_message = {psql_id}')
 
-        logger.info("%s documents sauvegardés", len(batch))
+        logger.info("%s documents traités", len(batch))
 
     cli_psql.close()
 

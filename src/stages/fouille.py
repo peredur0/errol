@@ -2,6 +2,7 @@
 """
 Code pour la phase de fouille de données
 """
+import datetime
 import hashlib
 import json
 import logging
@@ -337,14 +338,15 @@ def psql_insert(psql_chunk, client):
         logger.info("Documents a insérés dans la table %s - %s", table, len(to_insert))
         cmd_psql.insert_data_many(client, table, to_insert)
 
-    table = "status"
+    table = "controle"
     exists = set(line['id_message'] for
                  line in cmd_psql.get_data(client, table, ['id_message']))
     to_insert = []
     for hash_mess, document in psql_chunk.items():
         if exists_mess[hash_mess] in exists:
             continue
-        to_insert.append({'id_message': exists_mess[hash_mess], 'initial': 'OK'})
+        to_insert.append({'id_message': exists_mess[hash_mess],
+                          'initial': str(datetime.date.today())})
 
     if to_insert:
         logger.info("Documents a insérés dans la table %s - %s", table, len(to_insert))

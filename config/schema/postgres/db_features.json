@@ -3,6 +3,18 @@
     {
       "name": "errol",
       "tables": {
+        "update": [
+          {
+            "name": "controle",
+            "action": "ADD_COLUMN",
+            "fields": [
+              {
+                "name": "features",
+                "type": ["DATE"]
+              }
+            ]
+          }
+        ],
         "new": [
           {
             "name": "features_ponctuations",

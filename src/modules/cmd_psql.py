@@ -254,8 +254,38 @@ def apply_databases_updates(conf, file):
                 case 'delete':
                     pass
                 case 'update':
-                    pass
+                    for update_cmd in database['tables'][ops]:
+                        table_update(client, update_cmd)
                 case _:
                     logger.warning("Opération non référencée - %s", ops)
 
         client.close()
+
+
+def table_update(client, update_cmd):
+    """
+    Met à jour une table PSQL
+    :param client: <psycopg2.connection>
+    :param update_cmd: <dict>
+    """
+    query = f"ALTER TABLE {update_cmd['name']} "
+
+    match update_cmd['action']:
+        case "ADD_COLUMN":
+            fields = [f"ADD {field['name']} {' '.join(field['type'])}"
+                      for field in update_cmd['fields']]
+            query += ','.join(fields)
+
+        case _:
+            logger.error("Action '%s' non reconnue pour la mise à jour de la table %s",
+                         update_cmd['action'], update_cmd['name'])
+            return
+
+    cursor = client.cursor()
+    try:
+        cursor.execute(query)
+    except psycopg2.Error as err:
+        logger.error(err)
+        return
+
+    logger.info("Mise à jour %s effectuée sur %s", update_cmd['action'], update_cmd['name'])

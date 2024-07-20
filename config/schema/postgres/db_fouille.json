@@ -88,7 +88,7 @@
             ]
           },
           {
-            "name": "status",
+            "name": "controle",
             "fields": [
               {
                 "name": "id_message",
@@ -96,15 +96,7 @@
               },
               {
                 "name": "initial",
-                "type": ["CHAR(3)"]
-              },
-              {
-                "name": "features",
-                "type": ["CHAR(3)"]
-              },
-              {
-                "name": "nlp",
-                "type": ["CHAR(3)"]
+                "type": ["DATE"]
               }
             ],
             "foreign_keys": [
