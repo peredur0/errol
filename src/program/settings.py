@@ -66,7 +66,8 @@ class Settings:
 
         self.stage = arguments.stage
         self.args = {
-            'progress_bar': not arguments.progress_bar
+            'progress_bar': not arguments.progress_bar,
+            'rapport': arguments.rapport
         }
 
         self.infra = {
@@ -117,6 +118,10 @@ class Settings:
                 logger.error("Etape %s non reconnue", self.stage)
                 sys.exit(1)
 
+        self.rapport = {
+            'images': conf.get('rapport', 'images'),
+            'fouille': conf.get('rapport', 'fouille')
+        }
         logger.info("Initialisation %s OK", self.stage)
 
     def __repr__(self):

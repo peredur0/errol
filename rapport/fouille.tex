@@ -450,19 +450,7 @@ advantage of the trusted zone file transfer option.
 
 \subsection*{Analyse}
     L'exécution du programme donne les informations présentées dans le tableau~\ref{tab:fouillestats}.
-    \begin{table}[H]
-        \centering
-        \begin{tabular}{l|rrr|rrr|rrr}
-            & \multicolumn{3}{c}{mails} & \multicolumn{3}{c}{mot} & \multicolumn{3}{c}{mots uniques}\\
-            étapes & globale & spam & ham & globale & spam & ham & globale & spam & ham\\
-            \hline
-            récolte & 5798 & 1897 & 3901 & 2385120 & 916756 & 1468364 & 262614 & 129090 & 133524\\
-            création & 5662 & 1786 & 3876 & 1223062 & 589364 & 633698 & 99837 & 40676 & 59161\\
-            mise en base & 5334 & 1530 & 3804 & 1163777 & 533686 & 630091 & 99834 & 40676 & 59158\\
-        \end{tabular}
-        \caption{Données statistiques de la fouille}
-        \label{tab:fouillestats}
-    \end{table}
+    \input{sorties/fouille/stats}
     
     La figure~\ref{fig:dashFouille} montre un aperçu des données statistiques récoltées durant cette première phase.
     Les 3 premiers graphiques montrent l'évolution du nombre de documents, de mots et de mots uniques en fonction des étapes intermédiaires.\\
@@ -495,24 +483,24 @@ advantage of the trusted zone file transfer option.
     On voit aussi que la distribution du Zipf est globalement respectée.
     Il est ainsi fortement probable que notre dataset respecte les caractéristiques linguistiques naturelles.\\
 
-    L'extraction des liens informations numériques donne les statistiques du tableau~\ref{tab:p1liens}.
-    \begin{table}[H]
-        \centering
-        \begin{tabular}{l|rr|rr|rr|rr|rr}
-            & \multicolumn{2}{c}{url} & \multicolumn{2}{c}{mail} & \multicolumn{2}{c}{tel} & \multicolumn{2}{c}{prix} & \multicolumn{2}{c}{nombre}\\
-            & spam & ham & spam & ham & spam & ham & spam & ham & spam & ham\\
-            \hline
-            moyenne & 5.25 & 3.83 & 1.01 & 1.13 & 0.06 & 0.20 & 0.81 & 0.03 & 30.36 & 7.1\\
-            médiane & 3 & 2 & 0 & 1 & 0 & 0 & 0 & 0 & 7 & 4\\
-            90\% & 9 & 6 & 2 & 3 & 0 & 1 & 2 & 0 & 35 & 14\\
-            maximum & 295 & 470 & 69 & 20 & 67 & 25 & 29 & 17 & 15801 & 731\\
-        \end{tabular}
-        \caption{Statistiques sur les liens et informations numériques}
-        \label{tab:p1liens}
-    \end{table}
+    L'extraction des liens et des informations numériques donne les statistiques du tableau~\ref{tab:p1liens}.
+%    \begin{table}[H]
+%        \centering
+%        \begin{tabular}{l|rr|rr|rr|rr|rr}
+%            & \multicolumn{2}{c}{url} & \multicolumn{2}{c}{mail} & \multicolumn{2}{c}{tel} & \multicolumn{2}{c}{prix} & \multicolumn{2}{c}{nombre}\\
+%            & spam & ham & spam & ham & spam & ham & spam & ham & spam & ham\\
+%            \hline
+%            moyenne & 5.25 & 3.83 & 1.01 & 1.13 & 0.06 & 0.20 & 0.81 & 0.03 & 30.36 & 7.1\\
+%            médiane & 3 & 2 & 0 & 1 & 0 & 0 & 0 & 0 & 7 & 4\\
+%            90\% & 9 & 6 & 2 & 3 & 0 & 1 & 2 & 0 & 35 & 14\\
+%            maximum & 295 & 470 & 69 & 20 & 67 & 25 & 29 & 17 & 15801 & 731\\
+%        \end{tabular}
+%        \caption{Statistiques sur les liens et informations numériques}
+%        \label{tab:p1lien_old}
+%    \end{table}
     Les données statistiques sur les liens ne permettent pas mettre en avant une différence franche dans l'utilisation de ces éléments dans les catégories observées.
     Seul la présence de nombres ou d'URL seraient éventuellement susceptible d'apporter une aide à la catégorisation.
-
+    \input{sorties/fouille/liens}
 
 \subsection*{Choix techniques}
     \paragraph{Langage de programmation}

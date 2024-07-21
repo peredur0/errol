@@ -23,6 +23,13 @@ def args_handler():
         default=False
     )
 
+    parser.add_argument(
+        '-r', '--rapport',
+        help='Sauvegarde les données et images pour le rapport',
+        action='store_true',
+        default=False
+    )
+
     parser_dev = subparsers.add_parser('develop',
                                        help="Lance la partie en cours de développement")
 
@@ -62,7 +69,7 @@ def args_handler():
     )
 
     parser_features = subparsers.add_parser('features',
-                                        help="recherche des caractéristiques")
+                                            help="recherche des caractéristiques")
     parser_features.add_argument("-g", "--graph",
                                  help="Affiche les données statistiques sous forme de graph",
                                  action='store_true',

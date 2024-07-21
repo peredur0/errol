@@ -182,10 +182,8 @@ def get_stats(conf):
         schema = json.load(json_file)
 
     data = []
-    cats = list(schema.keys())
-    client = cmd_sqlite.connect(conf.infra['sqlite']['file'])
-    for cat in cats:
-        output = cmd_sqlite.get_data(client, cat)
+    for cat in list(schema.keys()):
+        output = cmd_sqlite.get_data(cmd_sqlite.connect(conf.infra['sqlite']['file']), cat)
         for row in output:
             keys = list(schema[cat].keys())
             row_info = dict(zip(keys, row))
@@ -197,13 +195,29 @@ def get_stats(conf):
                                  columns=['categorie'],
                                  index=['etape'],
                                  sort=False)
+    pivot = pivot.astype(int)
     logger.info("Statistiques de la fouille\n%s", pivot)
+
+    if conf.args['rapport']:
+        latex_table = pivot.to_latex(
+            caption='Données statistiques de la fouille',
+            label='tab:fouillestats',
+            index=True,
+            column_format='l|rrr|rrr|rrr',
+            longtable=False,
+            escape=True,
+            multicolumn=True,
+            multicolumn_format='c',
+            float_format="%.1f"
+        )
+        with open(f'{conf.rapport["fouille"]}/stats.tex', 'w', encoding='utf-8') as file:
+            file.write(latex_table)
 
     zipf_data = zipf_stats(conf)
     link_data = link_stats(conf)
 
     if conf.args['graph']:
-        graph.fouille_dash(stats_df, zipf_data, link_data)
+        graph.fouille_dash(conf, stats_df, zipf_data, link_data)
 
 
 def zipf_stats(conf):
@@ -223,31 +237,6 @@ def zipf_stats(conf):
                 zipf_data['const_moy'], zipf_data['coef_min'])
     client.close()
     return zipf_data
-
-
-def link_stats_old(conf):
-    """
-    Génère les statistiques des liens.
-    :param conf: <Settings>
-    :return: <Dataframe>
-    """
-    client = cmd_mongo.connect(conf)
-    collection = client[conf.infra['mongo']['db']][conf.infra['mongo']['collection']]
-    link_data = cmd_mongo.get_all_documents(collection, ['categorie', 'liens'])
-    link_data = [{'categorie': entry['categorie'], 'liens': key, 'value': value}
-                 for entry in link_data
-                 for key, value in entry['liens'].items()]
-    link_data = pd.DataFrame(link_data)
-    link_data = link_data.pivot_table(
-        index='liens',
-        values='value',
-        columns='categorie',
-        aggfunc=['mean', graph.q50, graph.q90, 'max']
-    )
-    logger.info("Statistiques des liens\n%s", link_data)
-    client.close()
-
-    return link_data
 
 
 def link_stats(conf):
@@ -270,15 +259,27 @@ def link_stats(conf):
         '''
 
     link_data = pd.read_sql_query(query, client)
-    link_data.columns = ['categorie', 'url', 'mail', 'tel', 'nombre', 'prix']
     client.dispose()
-    link_data = link_data.pivot_table(
-        index='categorie',
-        values=['url', 'mail', 'tel', 'nombre', 'prix'],
-        aggfunc=['mean', graph.q50, graph.q90, 'max']
-    )
+
+    link_data.columns = ['categorie', 'url', 'mail', 'tel', 'nombre', 'prix']
+    aggfunc = ['mean', graph.q50, graph.q90, 'max']
+    link_data = link_data.groupby('categorie')[link_data.columns[1:]].agg(
+        aggfunc).unstack().unstack()
 
     logger.info("Statistiques des liens\n%s", link_data)
+
+    if conf.args['rapport']:
+        latex_data = link_data.round(2).astype(str)
+        latex_data.style.to_latex(
+            buf=f'{conf.rapport["fouille"]}/liens.tex',
+            caption="Statistiques sur les liens et informations numériques",
+            label='tab:p1liens',
+            position='H',
+            position_float='centering',
+            clines='skip-last;data',
+            column_format='ll|rrr',
+            hrules=True
+        )
     return link_data
 
 

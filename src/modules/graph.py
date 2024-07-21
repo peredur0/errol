@@ -4,6 +4,8 @@ Code pour l'affichage des graph
 """
 
 import logging
+import os
+
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tck
@@ -34,7 +36,7 @@ def compacter(value, pos=None):
     """
     Compact les nombres.
     :param value: <int>
-    :param pos: <?> nécessaire pour FuncFormatter
+    :param pos: nécessaire pour FuncFormatter
     """
     logger.debug("compacter pos %s", pos)
     if value >= 1000:
@@ -42,9 +44,10 @@ def compacter(value, pos=None):
     return f'{value:.0f}'
 
 
-def fouille_dash(stats_df, zipf_data, link_df):
+def fouille_dash(conf, stats_df, zipf_data, link_df):
     """
     Affiche la reduction des données lors des étapes de la fouille
+    :param conf: <Settings>
     :param stats_df: <DataFrame>
     :param zipf_data: <dict>
     :param link_df: <DataFrame>
@@ -112,60 +115,60 @@ def fouille_dash(stats_df, zipf_data, link_df):
     axes[row, index].get_yaxis().set_visible(False)
     text = (f"Adresses mail:\n"
             f"Mean - "
-            f"ham: {link_df['mean', 'mail']['ham']:.2f} | "
-            f"spam: {link_df['mean', 'mail']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['mail']['mean']:.2f} | "
+            f"spam: {link_df['spam']['mail']['mean']:.2f}\n"
             f"Q50   - "
-            f"ham: {link_df['q50', 'mail']['ham']:.2f} | "
-            f"spam: {link_df['q50', 'mail']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['mail']['q50']:.2f} | "
+            f"spam: {link_df['spam']['mail']['q50']:.2f}\n"
             f"Q90   - "
-            f"ham: {link_df['q90', 'mail']['ham']:.2f} | "
-            f"spam: {link_df['q90', 'mail']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['mail']['q90']:.2f} | "
+            f"spam: {link_df['spam']['mail']['q90']:.2f}\n"
             f"Max   - "
-            f"ham: {link_df['max', 'mail']['ham']:.2f} | "
-            f"spam: {link_df['max', 'mail']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['mail']['max']:.2f} | "
+            f"spam: {link_df['spam']['mail']['max']:.2f}\n"
             f"\n"
             f"url:\n"
             f"Mean - "
-            f"ham: {link_df['mean', 'url']['ham']:.2f} | "
-            f"spam: {link_df['mean', 'url']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['url']['mean']:.2f} | "
+            f"spam: {link_df['spam']['url']['mean']:.2f}\n"
             f"Q50   - "
-            f"ham: {link_df['q50', 'url']['ham']:.2f} | "
-            f"spam: {link_df['q50', 'url']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['url']['q50']:.2f} | "
+            f"spam: {link_df['spam']['url']['q50']:.2f}\n"
             f"Q90   - "
-            f"ham: {link_df['q90', 'url']['ham']:.2f} | "
-            f"spam: {link_df['q90', 'url']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['url']['q90']:.2f} | "
+            f"spam: {link_df['spam']['url']['q90']:.2f}\n"
             f"Max   - "
-            f"ham: {link_df['max', 'url']['ham']:.2f} | "
-            f"spam: {link_df['max', 'url']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['url']['max']:.2f} | "
+            f"spam: {link_df['spam']['url']['max']:.2f}\n"
             f"\n"
             f"Nombres:\n"
             f"Mean - "
-            f"ham: {link_df['mean', 'nombre']['ham']:.2f} | "
-            f"spam: {link_df['mean', 'nombre']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['nombre']['mean']:.2f} | "
+            f"spam: {link_df['spam']['nombre']['mean']:.2f}\n"
             f"Q50   - "
-            f"ham: {link_df['q50', 'nombre']['ham']:.2f} | "
-            f"spam: {link_df['q50', 'nombre']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['nombre']['q50']:.2f} | "
+            f"spam: {link_df['spam']['nombre']['q50']:.2f}\n"
             f"Q90   - "
-            f"ham: {link_df['q90', 'nombre']['ham']:.2f} | "
-            f"spam: {link_df['q90', 'nombre']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['nombre']['q90']:.2f} | "
+            f"spam: {link_df['spam']['nombre']['q90']:.2f}\n"
             f"Max   - "
-            f"ham: {link_df['max', 'nombre']['ham']:.2f} | "
-            f"spam: {link_df['max', 'nombre']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['nombre']['max']:.2f} | "
+            f"spam: {link_df['spam']['nombre']['max']:.2f}\n"
             f"\n"
             f"Prix:\n"
             f"Mean - "
-            f"ham: {link_df['mean', 'prix']['ham']:.2f} | "
-            f"spam: {link_df['mean', 'prix']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['prix']['mean']:.2f} | "
+            f"spam: {link_df['spam']['prix']['mean']:.2f}\n"
             f"Q50   - "
-            f"ham: {link_df['q50', 'prix']['ham']:.2f} | "
-            f"spam: {link_df['q50', 'prix']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['prix']['q50']:.2f} | "
+            f"spam: {link_df['spam']['prix']['q50']:.2f}\n"
             f"Q90   - "
-            f"ham: {link_df['q90', 'prix']['ham']:.2f} | "
-            f"spam: {link_df['q90', 'prix']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['prix']['q90']:.2f} | "
+            f"spam: {link_df['spam']['prix']['q90']:.2f}\n"
             f"Max   - "
-            f"ham: {link_df['max', 'prix']['ham']:.2f} | "
-            f"spam: {link_df['max', 'prix']['spam']:.2f}\n"
+            f"ham: {link_df['ham']['prix']['max']:.2f} | "
+            f"spam: {link_df['spam']['prix']['max']:.2f}\n"
             )
     axes[row, index].text(0.1, -0.05, text, fontsize='small')
-    plt.savefig(f'./rapport/img/{fig.figname}.png')
+    plt.savefig(f'{conf.rapport["images"]}/{fig.figname}.png')
     plt.show()

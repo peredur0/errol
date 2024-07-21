@@ -7,9 +7,11 @@ import re
 import logging
 import multiprocessing
 import tqdm
+import pandas as pd
 
 from src.modules import cmd_psql
 from src.modules import cmd_mongo
+from src.modules import graph
 from src.annexes import zipf
 
 
@@ -44,6 +46,8 @@ def main(conf):
         mise_en_base(result, conf)
     else:
         logger.info("Aucun fichier à traiter")
+
+    features_stats(conf)
     logger.info("Fin de la recherche des caractéristiques")
 
 
@@ -157,7 +161,7 @@ def features_mots(texte):
     :param texte: <str>
     :return: <dict>
     """
-    tokens = texte.split()
+    tokens = re.findall(r'\w+', texte, re.MULTILINE)
     return {
         'char_minuscules': len(re.findall(r'[a-z]', texte, re.MULTILINE)),
         'char_majuscules': len(re.findall(r'[A-Z]', texte, re.MULTILINE)),
@@ -174,7 +178,7 @@ def features_zipf(texte):
     :param texte: <str>
     :return: <dict>
     """
-    tokens = texte.split()
+    tokens = re.findall(r'\w+', texte, re.MULTILINE)
     z_data = zipf.zipf_process(tokens)
     return {
         'constante': float(z_data.get('const_moy')),
@@ -189,7 +193,67 @@ def features_hapax(texte):
     :param texte: <str> message
     :return: <dict> avec les données
     """
-    tokens = texte.split()
+    tokens = re.findall(r'\w+', texte, re.MULTILINE)
     data = zipf.hapax(tokens)
     data['nombre_hapax'] = data.pop('nombres')
     return data
+
+
+def features_stats(conf):
+    """
+    Récupère et affiche les données statistiques des caractéristiques
+    :param conf: <settings>
+    :return: <None>
+    """
+    client = cmd_psql.create_engine(user=conf.infra['psql']['user'],
+                                    passwd=conf.infra['psql']['pass'],
+                                    host=conf.infra['psql']['host'],
+                                    port=conf.infra['psql']['port'],
+                                    dbname=conf.infra['psql']['db'])
+    me_cols = ['id_message']
+    ca_cols = ['nom']
+    ha_cols = ['ratio_mots_uniques', 'ratio_texte', 'nombre_hapax']
+    mo_cols = ['char_minuscules', 'char_majuscules', 'mots', 'mots_uniques', 'mots_majuscules',
+               'mots_capitalizes']
+    po_cols = ['point', 'virgule', 'exclamation', 'interrogation', 'tabulation', 'espace',
+               'ligne', 'ligne_vide']
+    zi_cols = ['constante', 'coefficient', 'taux_erreur']
+
+    query = f'''
+    SELECT 
+        {','.join([f'me.{field}' for field in me_cols])}, 
+        {','.join([f'ca.{field}' for field in ca_cols])}, 
+        {','.join([f'ha.{field}' for field in ha_cols])}, 
+        {','.join([f'mo.{field}' for field in mo_cols])}, 
+        {','.join([f'po.{field}' for field in po_cols])}, 
+        {','.join([f'zi.{field}' for field in zi_cols])} 
+    FROM messages me
+    JOIN categories ca ON ca.id_categorie = me.id_categorie 
+    JOIN features_hapax ha ON ha.id_message = me.id_message 
+    JOIN features_mots mo ON mo.id_message = me.id_message 
+    JOIN features_ponctuations po ON po.id_message = me.id_message 
+    JOIN features_zipf zi ON zi.id_message = me.id_message 
+    JOIN controle co ON co.id_message = me.id_message
+    WHERE co.features IS NOT NULL
+    '''
+    full_df = pd.read_sql_query(query, client)
+    client.dispose()
+
+    print_stats = {
+        'char': mo_cols[:2],
+        'mots': mo_cols[2:4],
+        'mots_form': mo_cols[4:],
+        'ponctuation': po_cols[:4],
+        'espace': po_cols[4:],
+        'zipf': zi_cols,
+        'hapax': ha_cols
+    }
+
+    for categorie, fields in print_stats.items():
+        data = full_df.pivot_table(
+            index='nom',
+            values=fields,
+            aggfunc=['mean', graph.q50, graph.q90, 'max']
+        )
+        logger.info("Statistiques %s\n%s", categorie, data)
+
