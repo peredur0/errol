@@ -3,10 +3,8 @@
 Traitement NLP via Stanza et mise en base des occurrences
 """
 import re
-import time
 import datetime
 import logging
-import multiprocessing
 
 import nltk
 import stanza
@@ -31,35 +29,15 @@ def main(conf):
     logger.info("Mise à jour de la base psql")
     cmd_psql.apply_databases_updates(conf, conf.infra['psql']['schema']['nlp'])
 
-    multiprocessing.set_start_method('spawn')
-
     nltk.download("stopwords")
     en_stop = set(stopwords.words('english'))
     pattern = re.compile(r'\w+')
+    stz_pipe = stanza.Pipeline(lang='en', processors='tokenize,mwt,pos,lemma')
 
-    data_queue = multiprocessing.Queue()
-    process = [
-        multiprocessing.Process(target=process_pipeline,
-                                args=(conf, pattern, en_stop, data_queue)),
-        multiprocessing.Process(target=process_database, args=(conf, data_queue))
-    ]
-    for p in process:
-        p.start()
-        p.join()
+    documents = process_pipeline(conf, stz_pipe, pattern, en_stop)
+    insert_pipeline(conf, documents)
 
     logger.info("Fin du processus NLP")
-
-def process_logger():
-    """
-    Défini le logger pour les subprocess
-    """
-    p_logger = logging.getLogger("nlp.subprocess")
-    p_logger.setLevel(logging.INFO)
-    log_format = logging.Formatter('%(asctime)s [%(levelname)s] - (%(name)s) : %(message)s')
-    log_handle = logging.StreamHandler()
-    log_handle.setFormatter(log_format)
-    p_logger.addHandler(log_handle)
-    return p_logger
 
 
 def get_all_mails(conf):
@@ -75,97 +53,75 @@ def get_all_mails(conf):
     return documents
 
 
-def process_pipeline(conf, pattern, stopw, queue):
+def process_pipeline(conf, stz_pipe, pattern, stopw):
     """
     Fonction executé dans un processus séparé
     :param conf: <Settings>
+    :param stz_pipe: <stanza.Pipeline>
     :param pattern: <re.compile>
     :param stopw: <set>
-    :param queue: <Queue>
     """
-    p_logger = process_logger()
-    p_logger.info("Début du processus traitement nlp")
-    stz_pipe = stanza.Pipeline(lang='en', processors='tokenize,mwt,pos,lemma')
+    results = []
+    logger.info("Début du processus traitement nlp")
     for document in tqdm.tqdm(get_all_mails(conf),
                               desc="Traitement NLP",
                               leave=False,
                               disable=conf.args['progress_bar']):
-        result = nlp_pipeline(conf, document, stz_pipe, pattern, stopw)
-        if result:
-            queue.put(result)
-    queue.put("OVER")
-    p_logger.info("Fin du traitement nlp")
+        data = nlp_pipeline(conf, document, stz_pipe, pattern, stopw)
+        if data:
+            results.append(data)
+
+    logger.info("Fin du traitement nlp")
+    return results
 
 
-def process_database(conf, queue):
+def insert_pipeline(conf, documents):
     """
-    Processus de traitement de la queue
+    Processus de mise en base pour les mots des documents
     :param conf: <Settings>
-    :param queue: <Queue>
+    :param documents: <list>
     """
-    p_logger = process_logger()
-    p_logger.info("Début du processus de mise en base")
-    counter = 5
-    while True:
-        if not counter:
-            p_logger.info("Process_database interrompu pour inactivité")
-            break
-
-        if queue.empty():
-            p_logger.info("Data queue vide, 10 secondes d'attente (%s/5)", counter)
-            counter -= 1
-            time.sleep(10)
-            continue
-
-        counter = 5
-        data = queue.get()
-        if data == 'OVER':
-            p_logger.info("Fin de la mise en base")
-            break
-
-        insert_pipeline(conf, data)
-
-
-def insert_pipeline(conf, data):
-    """
-    Processus de mise en base pour les mots d'un document
-    :param conf: <Settings>
-    :param data: <dict>
-    """
+    logger.info("Début de la mise en base")
     client = cmd_psql.connect_db(user=conf.infra['psql']['user'],
                                  passwd=conf.infra['psql']['pass'],
                                  host=conf.infra['psql']['host'],
                                  port=conf.infra['psql']['port'],
                                  dbname=conf.infra['psql']['db'])
-    for mot, freq in data['bag'].items():
-        table = 'nlp_mots_corpus'
-        clause = f"mot LIKE '{mot}'"
-        id_mot = cmd_psql.get_unique_data(client, table, 'id_mot', clause)
+    for data in tqdm.tqdm(documents,
+                          desc="Mise en base",
+                          leave=False,
+                          disable=conf.args['progress_bar']):
 
-        if not id_mot:
-            cmd_psql.insert_data_one(client, table, {'mot': mot})
+        for mot, freq in data['bag'].items():
+            table = 'nlp_mots_corpus'
+            clause = f"mot LIKE '{mot}'"
             id_mot = cmd_psql.get_unique_data(client, table, 'id_mot', clause)
 
-        clause = f"id_mot = {id_mot}"
-        fields = ['freq_corpus', 'freq_documents', f'freq_{data["categorie"]}']
-        freq_mot = cmd_psql.get_data(client, table, fields, clause)[0]
+            if not id_mot:
+                cmd_psql.insert_data_one(client, table, {'mot': mot})
+                id_mot = cmd_psql.get_unique_data(client, table, 'id_mot', clause)
 
-        freq_mot['freq_corpus'] += freq
-        freq_mot['freq_documents'] += 1
-        freq_mot[f'freq_{data["categorie"]}'] += 1
-        cmd_psql.update(client, table, freq_mot, clause)
+            clause = f"id_mot = {id_mot}"
+            fields = ['freq_corpus', 'freq_documents', f'freq_{data["categorie"]}']
+            freq_mot = cmd_psql.get_data(client, table, fields, clause)[0]
 
-        table = 'nlp_mots_documents'
-        cmd_psql.insert_data_one(client, table, {'id_mot': id_mot,
-                                                 'id_message': data['id_message'],
-                                                 'occurrence': freq})
+            freq_mot['freq_corpus'] += freq
+            freq_mot['freq_documents'] += 1
+            freq_mot[f'freq_{data["categorie"]}'] += 1
+            cmd_psql.update(client, table, freq_mot, clause)
 
-    table = 'controle'
-    clause = f"id_message = {data['id_message']}"
-    cmd_psql.update(client, table, {key: value for key, value
-                                    in data.items() if key in ['nlp', 'nlp_status']}, clause)
+            table = 'nlp_mots_documents'
+            cmd_psql.insert_data_one(client, table, {'id_mot': id_mot,
+                                                     'id_message': data['id_message'],
+                                                     'occurrence': freq})
+
+        table = 'controle'
+        clause = f"id_message = {data['id_message']}"
+        cmd_psql.update(client, table, {key: value for key, value
+                                        in data.items() if key in ['nlp', 'nlp_status']}, clause)
 
     client.close()
+    logger.info("Fin de la mise en base")
 
 
 def nlp_pipeline(conf, document, stz_pipe, pattern, stopw):
