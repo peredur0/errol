@@ -1,0 +1,94 @@
+{
+  "databases": [
+    {
+      "name": "errol",
+      "tables": {
+        "update": [
+          {
+            "name": "controle",
+            "action": "ADD_COLUMN",
+            "fields": [
+              {
+                "name": "nlp",
+                "type": ["DATE"]
+              }
+            ]
+          },
+          {
+            "name": "controle",
+            "action": "ADD_COLUMN",
+            "fields": [
+              {
+                "name": "nlp_status",
+                "type": ["VARCHAR"]
+              }
+            ]
+          }
+        ],
+        "new": [
+          {
+            "name": "nlp_mots_corpus",
+            "fields": [
+              {
+                "name": "id_mot",
+                "type": ["SERIAL", "PRIMARY KEY"]
+              },
+              {
+                "name": "mot",
+                "type": ["VARCHAR", "UNIQUE", "NOT NULL"]
+              },
+              {
+                "name": "freq_corpus",
+                "type": ["INT", "DEFAULT 0"]
+              },
+              {
+                "name": "freq_documents",
+                "type": ["INT", "DEFAULT 0"]
+              },
+              {
+                "name": "freq_spam",
+                "type": ["INT", "DEFAULT 0"]
+              },
+              {
+                "name": "freq_ham",
+                "type": ["INT", "DEFAULT 0"]
+              }
+            ]
+          },
+          {
+            "name": "nlp_mots_documents",
+            "fields": [
+              {
+                "name": "id_message",
+                "type": ["INT"]
+              },
+              {
+                "name": "id_mot",
+                "type": ["INT"]
+              },
+              {
+                "name": "occurrence",
+                "type": ["INT"]
+              }
+            ],
+            "primary_key": ["id_message", "id_mot"],
+            "foreign_key": [
+              {
+                "name": "fk_messages",
+                "field": "id_message",
+                "reference": "messages(id_message)",
+                "on_delete": "CASCADE"
+              },
+              {
+                "name": "fk_mots",
+                "field": "id_mot",
+                "reference": "nlp_mots_corpus(id_mot)",
+                "on_delete": "CASCADE"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

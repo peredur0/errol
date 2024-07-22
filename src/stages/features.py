@@ -48,6 +48,7 @@ def main(conf):
         logger.info("Aucun fichier à traiter")
 
     features_stats(conf)
+    # Todo: Analyse
     logger.info("Fin de la recherche des caractéristiques")
 
 
@@ -257,3 +258,4 @@ def features_stats(conf):
         )
         logger.info("Statistiques %s\n%s", categorie, data)
 
+    # todo: stocker les tableaux dans des fichiers tex

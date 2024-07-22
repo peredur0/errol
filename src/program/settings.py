@@ -43,7 +43,7 @@ def init_log(debug):
 
     mods = ['__main__',
             'src.program.settings',
-            'src.stages.develop', 'src.stages.fouille', 'src.stages.lang', 'src.stages.features',
+            'src.stages.develop', 'src.stages.fouille', 'src.stages.nlp', 'src.stages.features',
             'src.modules.cmd_docker', 'src.modules.cmd_sqlite', 'src.modules.cmd_mongo',
             'src.modules.cmd_psql', 'src.modules.word_count', 'src.modules.importation',
             'src.modules.transformation', 'src.modules.nettoyage', 'src.modules.graph',
@@ -81,7 +81,8 @@ class Settings:
                 'db': conf.get('psql', 'db'),
                 'schema': {
                     'fouille': conf.get('psql', 'schema_fouille'),
-                    'features': conf.get('psql', 'schema_features')
+                    'features': conf.get('psql', 'schema_features'),
+                    'nlp': conf.get('psql', 'schema_nlp')
                 }
             },
             'mongo': {

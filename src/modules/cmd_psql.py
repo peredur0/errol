@@ -64,7 +64,7 @@ def create_table(client_psql, schema):
         instr.append(f"{field['name']} {' '.join(field['type'])}")
 
     if 'primary_key' in schema and schema['primary_key']:
-        instr.append(f"PRIMARY KEY ({','.join(schema['primary_key'])}")
+        instr.append(f"PRIMARY KEY ({','.join(schema['primary_key'])})")
 
     if "foreign_keys" in schema and schema['foreign_keys']:
         for key in schema['foreign_keys']:
@@ -171,7 +171,7 @@ def get_unique_data(client_psql, table, champ, clause):
     :param table: <str> table à scroller.
     :param champ: <list> champs à récupérer.
     :param clause: <str> Clause WHERE
-    :return: <list> dict par ligne
+    :return: <any>
     """
     data = get_data(client_psql, table, [champ], clause)
 
