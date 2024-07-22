@@ -75,5 +75,12 @@ def args_handler():
                                  action='store_true',
                                  default=False)
 
+    parser_nlp = subparsers.add_parser('nlp',
+                                       help='Traitement du langage naturel')
+    parser_nlp.add_argument("-g", "--graph",
+                            help="Affiche les données statistiques sous forme de graph",
+                            action='store_true',
+                            default=False)
+
     subparsers.required = True
     return parser.parse_args()
