@@ -69,7 +69,7 @@ def args_handler():
     )
 
     parser_features = subparsers.add_parser('features',
-                                            help="recherche des caractéristiques")
+                                            help="Recherche des caractéristiques")
     parser_features.add_argument("-g", "--graph",
                                  help="Affiche les données statistiques sous forme de graph",
                                  action='store_true',

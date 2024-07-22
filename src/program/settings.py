@@ -101,7 +101,7 @@ class Settings:
         }
 
         match self.stage:
-            case 'develop' | 'features':
+            case 'develop' | 'features' | 'nlp':
                 pass
 
             case 'fouille':
