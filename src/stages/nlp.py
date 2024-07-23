@@ -93,6 +93,7 @@ def insert_pipeline(conf, documents):
                           disable=conf.args['progress_bar']):
 
         for mot, freq in data['bag'].items():
+            mot = mot.replace("'", "''")
             table = 'nlp_mots_corpus'
             clause = f"mot LIKE '{mot}'"
             id_mot = cmd_psql.get_unique_data(client, table, 'id_mot', clause)
@@ -100,6 +101,11 @@ def insert_pipeline(conf, documents):
             if not id_mot:
                 cmd_psql.insert_data_one(client, table, {'mot': mot})
                 id_mot = cmd_psql.get_unique_data(client, table, 'id_mot', clause)
+
+            if not id_mot:
+                logger.error("Echec d'insertion du mot '%s' du message %s", mot,
+                             data['id_message'])
+                continue
 
             clause = f"id_mot = {id_mot}"
             fields = ['freq_corpus', 'freq_documents', f'freq_{data["categorie"]}']
