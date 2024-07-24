@@ -7,7 +7,7 @@ import logging
 import sys
 
 from src.program import settings
-from src.stages import develop, fouille, features, nlp
+from src.stages import develop, fouille, features, nlp, vecteurs
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,9 @@ if __name__ == '__main__':
 
         case 'nlp':
             nlp.main(global_settings)
+
+        case 'vecteurs':
+            vecteurs.main(global_settings)
 
         case _:
             logger.error("Etape non attendue - %s", global_settings.stage)

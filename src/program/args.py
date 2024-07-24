@@ -82,5 +82,27 @@ def args_handler():
                             action='store_true',
                             default=False)
 
+    parser_vecteurs = subparsers.add_parser('vecteurs',
+                                            help="Vectorise les documents1")
+
+    parser_vecteurs.add_argument('method',
+                                 help="Methode de vectorisation",
+                                 nargs=1,
+                                 choices=['tfidf'])
+
+    parser_vecteurs.add_argument('-l', '--limit',
+                                 help="limiter le nombre mot utilisés dans la base vectorielle",
+                                 type=int,
+                                 default=200)
+
+    parser_vecteurs.add_argument('-i', '--init',
+                                 help="Initialise la base psql",
+                                 action='store_true',
+                                 default=False)
+
+    parser_vecteurs.add_argument("-g", "--graph",
+                                 help="Affiche les données statistiques sous forme de graph",
+                                 action='store_true',
+                                 default=False)
     subparsers.required = True
     return parser.parse_args()

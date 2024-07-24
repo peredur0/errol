@@ -44,6 +44,7 @@ def init_log(debug):
     mods = ['__main__',
             'src.program.settings',
             'src.stages.develop', 'src.stages.fouille', 'src.stages.nlp', 'src.stages.features',
+            'src.stages.vecteurs',
             'src.modules.cmd_docker', 'src.modules.cmd_sqlite', 'src.modules.cmd_mongo',
             'src.modules.cmd_psql', 'src.modules.word_count', 'src.modules.importation',
             'src.modules.transformation', 'src.modules.nettoyage', 'src.modules.graph',
@@ -82,7 +83,13 @@ class Settings:
                 'schema': {
                     'fouille': conf.get('psql', 'schema_fouille'),
                     'features': conf.get('psql', 'schema_features'),
-                    'nlp': conf.get('psql', 'schema_nlp')
+                    'nlp': conf.get('psql', 'schema_nlp'),
+                    'tfidf': conf.get('psql', 'schema_tfidf')
+                },
+                'vecteurs': {
+                    'tfidf': {
+                        'requetes': conf.get('psql', 'tfidf_sql')
+                    }
                 }
             },
             'mongo': {
@@ -101,8 +108,14 @@ class Settings:
         }
 
         match self.stage:
-            case 'develop' | 'features' | 'nlp':
+            case 'develop':
                 pass
+
+            case 'features' | 'nlp':
+                for cont in self.infra['containers']:
+                    if not cmd_docker.container_up(cont):
+                        logger.error('Docker conteneur %s non disponible', cont)
+                        sys.exit(1)
 
             case 'fouille':
                 self.args['ham'] = arguments.ham
@@ -115,6 +128,16 @@ class Settings:
                         logger.error('Docker conteneur %s non disponible', cont)
                         sys.exit(1)
 
+            case "vecteurs":
+                self.args['method'] = arguments.method
+                self.args['limit'] = arguments.limit
+                self.args['init'] = arguments.init
+
+                psql_cont = conf.get('infra', 'psql_container')
+                if not cmd_docker.container_up(psql_cont):
+                    logger.error('Docker conteneur %s non disponible', psql_cont)
+                    sys.exit(1)
+
             case _:
                 logger.error("Etape %s non reconnue", self.stage)
                 sys.exit(1)
@@ -123,7 +146,7 @@ class Settings:
             'images': conf.get('rapport', 'images'),
             'fouille': conf.get('rapport', 'fouille')
         }
-        logger.info("Initialisation %s OK", self.stage)
+        logger.info("Initialisation du programme pour la phase %s - OK", self.stage)
 
     def __repr__(self):
         return f"<Settings: {self.stage}>"
