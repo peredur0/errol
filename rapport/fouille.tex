@@ -34,7 +34,7 @@ Les données MIME non textuelles sont écartés ainsi que les messages corrompus
 		Cette solution comporte des points d'attentions.
 		La confiance en l'utilisateur ne peut pas être absolue.
 		Le rapport entre les ham et spam sera très probablement disproportionné en faveur des spams.
-		Au vu des traitements effectués, cette solution nécessitera une gestion des données personnelles en accord avec les RGPD\@.
+		Enfin au vu des traitements effectués, cette solution nécessitera une gestion des données personnelles en accord avec les RGPD\@.
 
 \subsection{Pré-traitement}
 	La Figure~\ref{fig:Phase1} montre l'enchainement des étapes de traitement du mail puis du corps de texte jusqu'à la mise en base.
@@ -484,32 +484,49 @@ advantage of the trusted zone file transfer option.
     Il est ainsi fortement probable que notre dataset respecte les caractéristiques linguistiques naturelles.\\
 
     L'extraction des liens et des informations numériques donne les statistiques du tableau~\ref{tab:p1liens}.
-%    \begin{table}[H]
-%        \centering
-%        \begin{tabular}{l|rr|rr|rr|rr|rr}
-%            & \multicolumn{2}{c}{url} & \multicolumn{2}{c}{mail} & \multicolumn{2}{c}{tel} & \multicolumn{2}{c}{prix} & \multicolumn{2}{c}{nombre}\\
-%            & spam & ham & spam & ham & spam & ham & spam & ham & spam & ham\\
-%            \hline
-%            moyenne & 5.25 & 3.83 & 1.01 & 1.13 & 0.06 & 0.20 & 0.81 & 0.03 & 30.36 & 7.1\\
-%            médiane & 3 & 2 & 0 & 1 & 0 & 0 & 0 & 0 & 7 & 4\\
-%            90\% & 9 & 6 & 2 & 3 & 0 & 1 & 2 & 0 & 35 & 14\\
-%            maximum & 295 & 470 & 69 & 20 & 67 & 25 & 29 & 17 & 15801 & 731\\
-%        \end{tabular}
-%        \caption{Statistiques sur les liens et informations numériques}
-%        \label{tab:p1lien_old}
-%    \end{table}
+
     Les données statistiques sur les liens ne permettent pas mettre en avant une différence franche dans l'utilisation de ces éléments dans les catégories observées.
     Seul la présence de nombres ou d'URL seraient éventuellement susceptible d'apporter une aide à la catégorisation.
     \input{sorties/fouille/liens}
 
 \subsection*{Choix techniques}
     \paragraph{Langage de programmation}
-        Python a été choisi pour développer ce programme pour les raisons énoncées ci-dessous :
+        Python a été choisi pour développer ce programme pour les raisons suivantes :
         \begin{itemize}
             \item[-] Large choix de modules, dont plusieurs spécialisés dans le traitement de données
             \item[-] Langage simple et flexible
             \item[-] Facilement portable et executable avec la fourniture des environnements virtuel
         \end{itemize}
+
+    \paragraph{Multiprocessing}
+        Le module natif multiprocessing de python est utilisé pour effectuer un traitement sur plusieurs documents en parallèle.
+        \begin{itemize}
+            \item Comptage des mots et mots uniques par catégorie - word\_count.fouille\_wc()
+            \item Création d'un document à partir d'un fichier - fouille\_doc()
+        \end{itemize}
+        Le programme détermine au démarrage le nombre de processus qu'il va pouvoir lancer en parallèle en fonction du nombre de processeurs disponible sur la machine.
+        Le programme limite son usage à la moitié des processeurs disponibles.\\
+        L'utilisation de ce module a réduit significativement le temps de traitement de la fouille par rapport à mes versions précédentes.
+
+    \paragraph{Mise en base}
+        La mise en base des documents utilise les capacités d'insertion par lots de mongo et de postgres.
+        Le résultat de la création de document est coupé en lot de 50 documents.
+        Chaque lot est inséré itérativement dans les deux bases.\\
+        Seule l'insertion dans la base mongo est susceptible d'échouer pour les raisons suivantes :
+        \begin{itemize}
+            \item Un champ ne possède pas le bon format - expediteur None alors que str est attendu
+            \item Clé dupliquée - document déjà présent dans la base
+            \item Erreur d'écriture - perte d'accès à la base
+        \end{itemize}
+        Dans le cas où l'insertion du lot échouerait, chaque document du lot est inséré individuellement.
+        Seuls les documents insérés dans la base mongo auront une entrée correspondante dans la base PSQL\@.
+
+    \paragraph{Contrôle}
+        Une table de contrôle dans la base Postgres va permettre de suivre l'avancée du traitement pour chaque document et les raisons éventuelles d'un échec.
+        Elle va aussi permettre d'exclure un document d'un traitement qui aurait déjà effectué.
+        Cette table est amenée à évoluer au cours des différentes phases.
+        Il a été décidé d'ajouter cette table PSQL car cette base est appelée dans toutes les phases du projet.
+
 
     \paragraph{Métriques}
         L'utilisation du nombre de documents, de mots et de mots uniques pour mesurer la performance de cette phase a été commandée par le cours.
@@ -531,7 +548,6 @@ advantage of the trusted zone file transfer option.
         J'ai dû me renseigner beaucoup pour arriver à comprendre l'équation sous-jacente et comment je pouvais la coder de manière efficace et visuelle.
         Vous pouvez voir le résultat de ce travail dans l'annexe~\ref{sec:devZipf}.
 
-\newpage
 \subsection*{Exemple de commandes pour exécuter la fouille}
     \begin{verbatimtab}
 $ make venv

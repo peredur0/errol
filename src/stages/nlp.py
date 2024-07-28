@@ -174,7 +174,7 @@ def nlp_pipeline(conf, document, stz_pipe, pattern, stopw):
         data.update({'bag': {}, 'nlp_status': 'Type error'})
     except torch.cuda.OutOfMemoryError as err:
         logger.warning("Erreur de traitement %s - %s", document['_id'], err)
-        data.update({'bag': {}, 'nlp_status': 'Type error'})
+        data.update({'bag': {}, 'nlp_status': 'Memory error'})
 
     return data
 

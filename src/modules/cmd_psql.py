@@ -109,13 +109,14 @@ def insert_data_one(client_psql, table, data):
     :param client_psql: <psycopg2.extension.connection> object connexion vers une base de donnee
     :param table: <str> La table dans à remplir
     :param data: <dict> {colonne : valeur}
-    :return: None
+    :return:
     """
     cols = ','.join([str(c) for c in data.keys()])
     vals = ','.join([str(v) if not isinstance(v, str) else f"'{v}'" for v in data.values()])
     query = f"INSERT INTO {table}({cols}) VALUES ({vals})"
 
-    exec_query(client_psql, query)
+    res = exec_query(client_psql, query)
+    return res
 
 
 def insert_data_many(client_psql, table, data):
@@ -126,8 +127,8 @@ def insert_data_many(client_psql, table, data):
     :param data: <list> [{col1 : val1, col2 : val2}, ...]
     """
     if len(data) == 1:
-        insert_data_one(client_psql, table, data[0])
-        return
+        res = insert_data_one(client_psql, table, data[0])
+        return res
 
     data = [dict(sorted(line.items())) for line in data]
     keys = data[0].keys()
@@ -135,7 +136,7 @@ def insert_data_many(client_psql, table, data):
         if keys != line.keys():
             logger.error("Impossible d'insérer les données dans la table %s les clés entre les"
                          " lignes ne sont pas identiques", table)
-            return
+            return -1
 
     lines_values = []
     for line in data:
@@ -144,7 +145,8 @@ def insert_data_many(client_psql, table, data):
         lines_values.append(vals)
 
     query = f"INSERT INTO {table} ({','.join(list(keys))}) VALUES {', '.join(lines_values)}"
-    exec_query(client_psql, query)
+    res = exec_query(client_psql, query)
+    return res
 
 
 def get_data(client_psql, table, champs, clause=None):
@@ -161,6 +163,8 @@ def get_data(client_psql, table, champs, clause=None):
         query += f" WHERE {clause}"
 
     result = exec_query(client_psql, query)
+    if result == -1:
+        return result
     return [dict(zip(champs, ligne)) for ligne in result]
 
 
@@ -201,7 +205,7 @@ def exec_query(client_psql, query):
         return []
     except psycopg2.Error as err:
         logger.error("Erreur d'execution de la requete : %s - %s", err, query)
-        return []
+        return -1
 
 
 def update(client, table, data, clause=None):
