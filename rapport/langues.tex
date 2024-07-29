@@ -92,8 +92,78 @@ def features_hapax(texte):
                 \label{fig:feat_db}
             \end{figure}
 
-    \subsubsection*{Analyse partielle}
-    TODO
+    \subsubsection*{Résultats de la recherche de caractéristiques}
+        \input{sorties/features/tab_mots}
+        Le tableau~\ref{tab:f_mots} montre que les spam utilisent globalement plus de mots uniques.
+        Il apparait que le nombre de mots par messages soit plus important dans les spam.
+
+        \input{sorties/features/tab_char}
+        Le tableau~\ref{tab:f_char} montre une nette utilisation des caractères en majuscule dans les spam.
+        Analogiquement cette représentation des majuscules est répercutée dans l'utilisation des mots contenant des majuscules comme montré dans le tableau~\ref{tab:f_format_mots}.
+        \input{sorties/features/tab_format-mots}
+
+        Les données des calculs de la distribution de Zipf (tableau~\ref{tab:f_zipf}) et
+        de la recherche d'Hapax (tableau~\ref{tab:f_hapax}) semblent aller dans le sens de spam de plus grande taille.
+        Cependant, ces données sont à prendre avec des pincettes, car au moins 10\% des documents ont un coefficient de $1.3$ qui est la limite haute pour la recherche de cette valeur.
+        \input{sorties/features/tab_zipf}
+        \input{sorties/features/tab_hapax}
+
+        Enfin les tableaux~\ref{tab:f_espace} et~\ref{tab:f_ponctuation} montrent que le formatage du texte via le nombre de lignes, des espaces et de la ponctuation, est plus prononcé dans les spam.
+        \input{sorties/features/tab_espace}
+        \input{sorties/features/tab_ponctuation}
+
+        Les caractéristiques suivantes seront écartées, car il y a trop peu d'occurrence :
+        \begin{itemize}
+            \item ligne vide
+            \item tabulation
+            \item interrogation
+            \item exclamation
+            \item mots en majuscules
+        \end{itemize}
+
+        \paragraph{Matrice de corrélation}
+            La corrélation entre 2 variables permet de voir l'interdépendance entre elles.
+            Il est alors possible de voir si leurs augmentations ou diminutions sont de nature à être liées.
+            Cette relation peut dans certain cas montrer une relation de cause à effet.
+
+			Le calcul des coefficients présentés dans la matrice de la Figure \ref{fig:corr} utilise la méthode de corrélation linéaire de Pearson.
+			Il s'agit ici de calculer le ratio ($r$) de la covariance entre 2 variables par le produit de leurs écart-types.
+
+			\begin{eqnarray*}
+				r_{X,Y} &=& \frac{cov(X,Y)}{\sigma_{X}\sigma_{Y}}\\
+				r_{X,Y} &=& \frac{\sum_{i=1}^{n}(x_{i}-\overline{x})(y_{i}-\overline{y})}{\sqrt{\sum_{i=1}^{n}(x_{i}-\overline{x})^{2}}\sqrt{\sum_{i=1}^{n}(y_{i}-\overline{y})^{2}}}
+			\end{eqnarray*}
+
+			Une corrélation forte sera proche des bornes $1$ et $-1$.
+            Une corrélation faible sera proche de $0$.
+            L'idée finale étant de ne garder que des caractéristiques indépendantes les unes des autres
+            \begin{figure}[H]
+				\includegraphics[width=\linewidth]{img/features_corr}
+				\caption{Matrice de corrélation des caractéristiques}
+				\label{fig:corr}
+			\end{figure}
+
+            Dans cette matrice, il est possible d'affirmer les éléments suivants.
+            Le ratio d'hapax entre les mots uniques et l'ensemble de texte est fortement lié.
+            Mais le nombre d'hapax semble indépendant des deux ratios dont il est une partie du calcul.
+
+            Le nombre de caractères en majuscule est indépendant avec la majeure partie des autres caractéristiques.
+
+            Les caractéristiques mots, char-minuscule, mots-uniques, mots-capitalizes, point, espace, ligne, constante sont très liées entre elles.
+            Nous allons conserver ici le nombre de lignes.
+            Car c'est la caractéristique la plus indépendante de celles déjà sélectionnées et qui possède le plus grand nombre moyen d'occurrences.
+
+            Les deux dernières caractéristiques (coefficient et taux d'erreur) sont également fortement liées et indépendante des autres valeurs.
+            Nous allons conserver ici uniquement le coefficient.
+            Il est plus indépendant que le taux d'erreur vis à vis du ratio de mots uniques.\\
+
+            Nous allons donc conserver pour la création du modèle les caractéristiques suivantes :
+            \begin{itemize}
+                \item ratio-mots-unique
+                \item nombre-hapax
+                \item char-majuscule
+                \item espaces
+            \end{itemize}
 
 \subsection{Traitement du langage}
     Dans cette section, nous aborderons les traitements du langage naturel qui vont être employés afin de tenter de
@@ -326,5 +396,5 @@ SELECT mot, freq_spam/freq_ham as "ratio spam/ham" FROM nlp_mots_corpus WHERE fr
             Cela implique que les labels manquants pour un message doivent être initialisés à 0 avant le début du traitement IA\@.
             La table \emph{vect\_mots\_labels} doit permettre de retrouver la liste complète des labels valident pour un vecteur.
 
-        \paragraph{Analyse partielle}
+        \paragraph{Résultat de la vectorisation}
             TODO

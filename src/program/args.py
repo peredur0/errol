@@ -38,6 +38,11 @@ def args_handler():
                             action='store_true',
                             default=False)
 
+    parser_dev.add_argument("-g", "--graph",
+                            help="Affiche les données statistiques sous forme de graph",
+                            action='store_true',
+                            default=False)
+
     parser_fouille = subparsers.add_parser('fouille',
                                            help="Réalisation des actions de fouille de données")
     parser_fouille.add_argument("-g", "--graph",

@@ -172,3 +172,16 @@ def fouille_dash(conf, stats_df, zipf_data, link_df):
     axes[row, index].text(0.1, -0.05, text, fontsize='small')
     plt.savefig(f'{conf.rapport["images"]}/{fig.figname}.png')
     plt.show()
+
+
+def feature_correlation(data, conf):
+    """
+    Génère la matrice de correlation pour les caractéristiques:
+    :param data: <dataframe>
+    :param conf: <Settings>
+    """
+    plt.figure(figsize=(17, 10))
+    sns.heatmap(data.corr(), annot=True)
+    plt.tight_layout()
+    plt.savefig(f'{conf.rapport["images"]}/features_corr.png')
+    plt.show()

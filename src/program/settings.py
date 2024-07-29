@@ -109,7 +109,7 @@ class Settings:
 
         match self.stage:
             case 'develop':
-                pass
+                self.args['graph'] = arguments.graph
 
             case 'features' | 'nlp':
                 for cont in self.infra['containers']:
@@ -144,7 +144,8 @@ class Settings:
 
         self.rapport = {
             'images': conf.get('rapport', 'images'),
-            'fouille': conf.get('rapport', 'fouille')
+            'fouille': conf.get('rapport', 'fouille'),
+            'features': conf.get('rapport', 'features')
         }
         logger.info("Initialisation du programme pour la phase %s - OK", self.stage)
 
