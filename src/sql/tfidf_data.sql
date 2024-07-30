@@ -1,5 +1,11 @@
-SELECT nd.id_mot, vt.label, nd.occurrence, nc.freq_documents
-FROM nlp_mots_documents nd
-JOIN vect_tfidf_mots_labels vt ON nd.id_mot = vt.id_mot
-JOIN nlp_mots_corpus nc ON nd.id_mot = nc.id_mot
-WHERE nd.id_message = 1;
+SELECT sq.document, ca.nom categorie, sq.dimensions, sq.somme
+FROM (SELECT id_message document, COUNT(label) dimensions, SUM(value) somme
+        FROM vect_messages
+        WHERE vecteur_algo LIKE 'tfidf'
+        GROUP BY document) as sq
+JOIN messages me ON me.id_message = sq.document
+JOIN categories ca ON me.id_categorie = ca.id_categorie;
+SELECT vml.label, nmc.freq_corpus, nmc.freq_ham, nmc.freq_spam
+FROM vect_mots_labels vml
+JOIN nlp_mots_corpus nmc ON vml.id_mot = nmc.id_mot
+WHERE vml.vecteur_algo LIKE 'tfidf';

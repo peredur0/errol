@@ -27,19 +27,15 @@ def main(conf):
                                     port=conf.infra['psql']['port'],
                                     dbname=conf.infra['psql']['db'])
 
-    with open(conf.infra['psql']['nlp']['requetes'], 'r', encoding='utf-8') as file:
+    with open(conf.infra['psql']['vecteurs']['tfidf']['data'], 'r', encoding='utf-8') as file:
         sql_reqs = file.read()
 
-    stats_df = []
-    for query in sql_reqs.split(';'):
-        if query.startswith('\n'):
-            query = query[1:]
-        if not query:
-            continue
+    queries = sql_reqs.split(';')
+    df_1 = pd.read_sql_query(queries[0], client)
+    df_1 = df_1.drop(['document'], axis=1)
 
-        new_df = pd.read_sql_query(query, client)
-        stats_df.append(new_df.to_string(index=False))
-
-    logger.info("Données du traitement - \n%s", '\n'.join(stats_df))
+    df_2 = pd.read_sql_query(queries[1], client)
+    df_2 = df_2.drop(['label'], axis=1)
+    graph.vecteurs_dash(df_1, df_2, conf)
 
     client.dispose()

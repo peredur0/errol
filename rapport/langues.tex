@@ -307,7 +307,7 @@ ZKZmblanzxaDBmnTTIcorikgl
         \begin{table}[H]
             \centering
             \begin{tabular}{l|rr}
-                categorie & mots & mots uniques \\
+                catégorie & mots & mots uniques \\
                 global & 658524 & 39947 \\
                 \hline
                 ham & 355595 & 27787 \\
@@ -410,4 +410,48 @@ SELECT mot, freq_spam/freq_ham as "ratio spam/ham" FROM nlp_mots_corpus WHERE fr
             La table \emph{vect\_mots\_labels} doit permettre de retrouver la liste complète des labels valident pour un vecteur.
 
         \paragraph{Résultat de la vectorisation}
-            TODO
+        La commande SQL ci-dessous va permettre de récupérer la liste des documents vectorisés avec leur catégorie ainsi que le nombre de dimensions utilisées avec la somme des dimensions de chaque vecteur.
+        \begin{lstlisting}[title=Commande SQL pour lister les documents vectoriser, language=SQL]
+SELECT sq.document, cat.nom categorie, sq.dimensions, sq.somme
+FROM (SELECT id_message document, COUNT(label) dimensions, SUM(value) somme
+        FROM vect_messages
+        WHERE vecteur_algo LIKE 'tfidf'
+        GROUP BY document) as sq
+JOIN messages me ON me.id_message = sq.document
+JOIN categories ca ON me.id_categorie = ca.id_categorie;
+        \end{lstlisting}
+        Il est alors possible d'obtenir les distributions montrées dans la figure~\ref{fig:tfidf_distr}.
+        \begin{figure}[H]
+            \includegraphics[width=\linewidth]{img/vectdash}
+            \caption{Répartition des documents suite à la vectorisation}
+            \label{fig:tfidf_distr}
+        \end{figure}
+        Le premier graphique montre la distribution de documents selon le nombre de mots utilisés pour les vectorisés.
+        On voit que la grande majorité des documents est définis avec moins de 100 dimensions (mots).
+        Le deuxième graphique présente une distribution de la somme de toutes les dimensions de chaque message.
+        Dans les deux cas, on voit que les ham concentre la majeure partie des documents vers les bords gauches des tableaux et ont une courbe dégressive.
+        La répartition des spam quant à elle semble plus homogène.\\
+
+        La commande SQL suivante va nous permettre de voir si certains mots du vecteur plus utilisés dans un type de document que dans l'autre.
+        Les données sont représentées dans la figure~\ref{fig:tfidf_mots}.
+        \begin{lstlisting}[title=Commande SQL pour lister les mots du vecteur, language=SQL]
+SELECT vml.label, nmc.freq_corpus, nmc.freq_ham, nmc.freq_spam
+FROM vect_mots_labels vml
+JOIN nlp_mots_corpus nmc ON vml.id_mot = nmc.id_mot
+WHERE vml.vecteur_algo LIKE 'tfidf';
+        \end{lstlisting}
+        \begin{figure}[H]
+            \includegraphics[width=\linewidth]{img/vectmots}
+            \caption{Représentation de l'apparition des mots du vecteur}
+            \label{fig:tfidf_mots}
+        \end{figure}
+        Chaque mot du vecteur est représenté par un point avec en abscisse le nombre de spam dans lesquels il est présent, et en ordonnée le nombre de ham.
+        La fréquence d'apparition du mot dans le corpus est représenté par la couleur et la taille du point.
+        Pour faciliter la lecture une ligne droite $y=x$ a été ajoutée.
+        Tous les points au-dessus de cette ligne seront plutôt associé aux ham et les mots en-dessous au spam.
+        Les points sur cette ligne sont présents dans autant de document des deux catégories.\\
+        De manière générale, on remarque un léger déséquilibre du nombre de mots en faveur des HAM.
+        Les mots à faible occurrence ont tendance à graviter autour de la ligne médiane, même si une bonne quantité n'est présente que dans les ham.
+        Les mots a forte occurrence se retrouvent plus éloignés du milieu.
+        Cela est potentiellement un avantage pour les étapes de catégorisation.
+

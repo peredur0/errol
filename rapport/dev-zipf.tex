@@ -103,23 +103,9 @@ def classement_zipf(dico):
 
 			\begin{lstlisting}[title=Fonctions utilisées dans la recherche du coefficient]
 def zipf_freq_theorique(constante, rang, coef):
-    """
-    Calcul la frequence theorique d'un mot selon son rang, la constante du texte et un coeficiant d'ajustement
-    :param constante: <int> constante determinee par la distribution de Zipf
-    :param rang: <int> rang du mot selon sa frequence
-    :param coef: <float> variable d'ajustement
-    :return: <float> frequence theorique zipfienne
-    """
     return constante / (rang ** coef)
 
 def cout(l1, l2, methode):
-    """
-    Calcul le cout de l'ecart entre les elements de l1 et le l2, place par place
-    :param l1: <list> liste d'entier
-    :param l2: <liste> liste d'entier
-    :param methode: <str> methode de calcul du cout
-    :return: <float> cout selon methode
-    """
     if len(l1) != len(l2):
         print("Erreur, fonction cout: l1 & l2 de taille differente", file=sys.stderr)
         return None

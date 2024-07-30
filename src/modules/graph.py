@@ -185,3 +185,63 @@ def feature_correlation(data, conf):
     plt.tight_layout()
     plt.savefig(f'{conf.rapport["images"]}/features_corr.png')
     plt.show()
+
+
+def vecteurs_dash(data_message, data_mot, conf):
+    """
+    Créé le dashboard après la vectorisation
+    :param data_message: <dataframe>
+    :param data_mot: <dataframe>
+    :param conf: <Settings>
+    """
+    logger.info("Affichage du tableau de bord de la vectorisation")
+    palette = {'ham': '#2ca02c', 'spam': '#d62728'}
+    fig, axes = plt.subplots(2, 1, figsize=(10, 5))
+    fig.figname = "vectdash"
+    dim_df = data_message[data_message['dimensions'] <= 200]
+    sns.histplot(data=dim_df[['dimensions', 'categorie']],
+                 x='dimensions',
+                 hue='categorie',
+                 multiple="dodge",
+                 shrink=0.8,
+                 ax=axes[0],
+                 palette=palette,
+                 bins=70)
+    axes[0].set_title("Répartitions des documents par nombre de dimensions")
+    axes[0].set_ylabel("Nombre de documents")
+
+    sum_df = data_message[data_message['somme'] <= 1000]
+    sns.histplot(data=sum_df[['somme', 'categorie']],
+                 x='somme',
+                 hue='categorie',
+                 multiple="dodge",
+                 shrink=0.8,
+                 ax=axes[1],
+                 palette=palette,
+                 bins=70)
+    axes[1].set_title("Répartitions des documents par somme vectorielle")
+    axes[1].set_ylabel("Nombre de documents")
+
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.918, bottom=0.139, left=0.084, right=0.982, hspace=0.624, wspace=0.2)
+    plt.savefig(f'{conf.rapport["images"]}/{fig.figname}.png')
+    plt.show()
+
+    max_ham = data_mot['freq_ham'].max()
+    max_spam = data_mot['freq_spam'].max()
+    maxi = max_ham if max_ham > max_spam else max_spam
+    fig, axe = plt.subplots(1, 1, figsize=(10, 10))
+    fig.figname = "vectmots"
+    fig.tight_layout()
+    sns.scatterplot(data=data_mot,
+                    x='freq_spam',
+                    y='freq_ham',
+                    hue='freq_corpus',
+                    size='freq_corpus',
+                    ax=axe)
+    plt.plot([0, maxi], [0, maxi], color='black', linestyle='--')
+
+    axe.set_title("Représentation des mots du vecteurs")
+    plt.tight_layout()
+    plt.savefig(f'{conf.rapport["images"]}/{fig.figname}.png')
+    plt.show()

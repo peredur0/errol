@@ -77,13 +77,52 @@
 		\input{langues}
 		\newpage
 
-	\section{Modélisation}
-		\label{sec:modelisation}
-		\input{modelisation}
-		\newpage
+%	\section{Modélisation}
+%		\label{sec:modelisation}
+%		\input{modelisation}
+%		\newpage
 
 	\section*{Conclusion}
-	
+		\label{sec:Conclusion}
+		Avec ce projet nous avons vu le montage d'une infrastructure basée sur docker pour le stockage des informations récoltées et générées lors des différentes phases.
+		Les fonctions développées pour les bases SQL et NoSQL sont utilisées dans toutes les phases de traitement.\\
+
+		Faute de sources, il n'a pas été possible de mettre en place une automatisation pour la récupération des mails.
+		Il a été nécessaire de les récupérer manuellement dans d'autres projet du même type.\\
+
+		Le traitement initiale des mails est totalement automatisé grâce à Python et aux modules email et re.
+		Ce nettoyage a permis de ne conserver que l'essentiel des corps de message tout en écartant les mails corrompu, sans texte, ou avec un mauvais encodage.\\
+
+		Pour agrémenter notre jeux de données la recherche de caractéristique s'est concentré sur la forme des textes ainsi que sur la présence d'éléments non textuel.
+		Les résultats de cette recherche n'a pas été aussi concluant que ce qui était espéré.\\
+
+		La phase de traitement du langage visait à réduire les textes au minimum en tentant de conserver un maximum de sens.
+		Pour cela, la lemmatisation semblait la meilleure option.
+		Le modèle neuronale développer par StandfordNLP à permis de réaliser cette opération. \\
+
+		Enfin la vectorisation a été réalisée en utilisant la méthode TF-IDF (Term Frequency - Inverse Document Frequency).
+		Cette méthode est en accord avec l'idée d'analyse les mails en se basant sur la présence de certains mots.
+		L'ensemble des documents pu être généré mais des ajustements ont du être fait pour ne pas avoir de vecteur null.
+
+		Le tableau~\ref{tab:evolution} montre l'évolution du nombre de document et des mots au fur et à mesure des phases du projet
+		\begin{table}[H]
+            \centering
+            \begin{tabular}{l|rrr]}
+                Phase/Etape & nombre de documents & nombre de mots & nombre de mots uniques\\
+                \hline
+				Récolte & 5798 & 2385120 & 262614\\
+				Transformation & 5658 & 1222793 & 99772\\
+				Sauvegarde & 5333 & 1163550 & 99772\\
+				Traitement du langage & 5333 & 658524 & 39947\\
+				Vectorisation & 5333 & 453068 & 2942\\
+            \end{tabular}
+            \caption{Problèmes possibles avec la mise en base}
+            \label{tab:evolution}
+        \end{table}
+
+		Ce qu'il reste à faire est d'utiliser ces données dans des modèles d'apprentissage automatique comme une Random Tree Forest ou Support Vector Machine.
+		Il sera également intéressant de pouvoir tester ces modèles sur des données qui n'auraient pas été vue lors du développement
+
 	\newpage
 	\appendix
 	\section{Développement visualisation distribution de Zipf}

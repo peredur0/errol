@@ -9,7 +9,9 @@ import sys
 import multiprocessing
 import tqdm
 
+import pandas as pd
 from src.modules import cmd_psql
+from src.modules import graph
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +127,9 @@ def tfidf_vect_full(conf):
 
     tfidf_store_vecteurs(conf, result)
 
+    if conf.args['graph']:
+        tfidf_graph(conf)
+
 
 def tfidf_vectorise(pool_args):
     """
@@ -205,3 +210,27 @@ def tfidf_store_vecteurs(conf, result):
         cmd_psql.update(client, 'controle', entry['controle'], f"id_message = {id_message}")
 
     client.close()
+
+def tfidf_graph(conf):
+    """
+    Affiche les données de la vectorisation
+    :param conf: <Settings>
+    """
+    client = cmd_psql.create_engine(user=conf.infra['psql']['user'],
+                                    passwd=conf.infra['psql']['pass'],
+                                    host=conf.infra['psql']['host'],
+                                    port=conf.infra['psql']['port'],
+                                    dbname=conf.infra['psql']['db'])
+
+    with open(conf.infra['psql']['vecteurs']['tfidf']['data'], 'r', encoding='utf-8') as file:
+        sql_reqs = file.read()
+
+    queries = sql_reqs.split(';')
+    df_1 = pd.read_sql_query(queries[0], client)
+    df_1 = df_1.drop(['document'], axis=1)
+
+    df_2 = pd.read_sql_query(queries[1], client)
+    df_2 = df_2.drop(['label'], axis=1)
+    graph.vecteurs_dash(df_1, df_2, conf)
+
+    client.dispose()

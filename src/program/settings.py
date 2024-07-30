@@ -91,7 +91,8 @@ class Settings:
                 },
                 'vecteurs': {
                     'tfidf': {
-                        'requetes': conf.get('psql', 'tfidf_sql')
+                        'requetes': conf.get('psql', 'tfidf_sql'),
+                        "data": conf.get('psql', 'tfidf_data_sql')
                     }
                 }
             },
@@ -139,6 +140,7 @@ class Settings:
                         sys.exit(1)
 
             case "vecteurs":
+                self.args['graph'] = arguments.graph
                 self.args['method'] = arguments.method
                 self.args['limit'] = arguments.limit
                 self.args['init'] = arguments.init
