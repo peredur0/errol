@@ -86,6 +86,9 @@ class Settings:
                     'nlp': conf.get('psql', 'schema_nlp'),
                     'tfidf': conf.get('psql', 'schema_tfidf')
                 },
+                'nlp': {
+                    'requetes': conf.get('psql', 'nlp_sql')
+                },
                 'vecteurs': {
                     'tfidf': {
                         'requetes': conf.get('psql', 'tfidf_sql')
@@ -111,7 +114,14 @@ class Settings:
             case 'develop':
                 self.args['graph'] = arguments.graph
 
-            case 'features' | 'nlp':
+            case 'features':
+                self.args['graph'] = arguments.graph
+                for cont in self.infra['containers']:
+                    if not cmd_docker.container_up(cont):
+                        logger.error('Docker conteneur %s non disponible', cont)
+                        sys.exit(1)
+
+            case 'nlp':
                 for cont in self.infra['containers']:
                     if not cmd_docker.container_up(cont):
                         logger.error('Docker conteneur %s non disponible', cont)

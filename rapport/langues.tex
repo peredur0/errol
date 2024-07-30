@@ -99,7 +99,7 @@ def features_hapax(texte):
 
         \input{sorties/features/tab_char}
         Le tableau~\ref{tab:f_char} montre une nette utilisation des caractères en majuscule dans les spam.
-        Analogiquement cette représentation des majuscules est répercutée dans l'utilisation des mots contenant des majuscules comme montré dans le tableau~\ref{tab:f_format_mots}.
+        Analogiquement cette représentation des majuscules est répercutée dans l'utilisation des mots contenant des majuscules comme montré dans le tableau~\ref{tab:f_format-mots}.
         \input{sorties/features/tab_format-mots}
 
         Les données des calculs de la distribution de Zipf (tableau~\ref{tab:f_zipf}) et
@@ -302,8 +302,21 @@ ZKZmblanzxaDBmnTTIcorikgl
             \label{fig:nlp_db}
         \end{figure}
 
-    \paragraph{Analyse partielle}
-    TODO
+    \paragraph{Résultats du traitement du langage}
+        A l'issue de la phase de lemmatisation, on obtient les données présentées dans le tableau~\ref{tab:nlp} pour l'ensemble du corpus.
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{l|rr}
+                categorie & mots & mots uniques \\
+                global & 658524 & 39947 \\
+                \hline
+                ham & 355595 & 27787 \\
+                \hline
+                spam & 302929 & 19852 \\
+            \end{tabular}
+            \caption{Nombre de mots après la lemmatisation}
+            \label{tab:nlp}
+        \end{table}
 
 	\subsubsection{Vectorisation}
 	    La vectorisation d'un texte doit permettre de transposer les données textuelles en données numériques afin de

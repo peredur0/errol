@@ -48,7 +48,6 @@ def main(conf):
         logger.info("Aucun fichier à traiter")
 
     features_stats(conf)
-    # Todo: Analyse
     logger.info("Fin de la recherche des caractéristiques")
 
 
@@ -238,16 +237,18 @@ def features_stats(conf):
     WHERE co.features IS NOT NULL
     '''
     full_df = pd.read_sql_query(query, client)
+    replace_cols = {name: name.replace('_', '-') for name in list(full_df.columns)}
+    full_df = full_df.rename(columns=replace_cols)
     client.dispose()
 
     print_stats = {
-        'char': mo_cols[:2],
-        'mots': mo_cols[2:4],
-        'mots_form': mo_cols[4:],
-        'ponctuation': po_cols[:4],
-        'espace': po_cols[4:],
-        'zipf': zi_cols,
-        'hapax': ha_cols
+        'char': [col.replace('_', '-') for col in mo_cols[:2]],
+        'mots': [col.replace('_', '-') for col in mo_cols[2:4]],
+        'format-mots': [col.replace('_', '-') for col in mo_cols[4:]],
+        'ponctuation': [col.replace('_', '-') for col in po_cols[:4]],
+        'espace': [col.replace('_', '-') for col in po_cols[4:]],
+        'zipf': [col.replace('_', '-') for col in zi_cols],
+        'hapax': [col.replace('_', '-') for col in ha_cols]
     }
 
     for categorie, fields in print_stats.items():
@@ -255,7 +256,22 @@ def features_stats(conf):
             index='nom',
             values=fields,
             aggfunc=['mean', graph.q50, graph.q90, 'max']
+        ).unstack().unstack()
+        latex_data = data.round(2).astype(str)
+        latex_data.style.to_latex(
+            buf=f'{conf.rapport["features"]}/tab_{categorie}.tex',
+            caption=f"Statistiques sur les données {categorie}",
+            label=f'tab:f_{categorie}',
+            position='H',
+            position_float='centering',
+            clines='skip-last;data',
+            column_format='ll|rr',
+            hrules=True
         )
         logger.info("Statistiques %s\n%s", categorie, data)
 
-    # todo: stocker les tableaux dans des fichiers tex
+    if conf.args['graph']:
+        excluded = ['nom', 'id-message', 'ligne-vide', 'tabulation', 'interrogation',
+                    'exclamation', 'virgule', 'mots-majuscules']
+        df_corr = full_df.drop(excluded, axis=1)
+        graph.feature_correlation(df_corr, conf)

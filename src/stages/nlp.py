@@ -10,6 +10,7 @@ import nltk
 import stanza
 import torch.cuda
 import tqdm
+import pandas as pd
 
 from nltk.corpus import stopwords
 from src.modules import cmd_mongo
@@ -37,6 +38,7 @@ def main(conf):
     documents = process_pipeline(conf, stz_pipe, pattern, en_stop)
     insert_pipeline(conf, documents)
 
+    nlp_stats(conf)
     logger.info("Fin du processus NLP")
 
 
@@ -192,3 +194,32 @@ def lemmatise(message, stopwds, pipeline, pattern):
     doc = pipeline(message)
     lemma = [mot.lemma for phrase in doc.sentences for mot in phrase.words]
     return [lem.lower() for lem in lemma if re.match(pattern, lem) and lem.lower() not in stopwds]
+
+
+def nlp_stats(conf):
+    """
+    Récupère et affiche les statistiques sur les mots:
+    :param conf: <Settings>
+    """
+    client = cmd_psql.create_engine(user=conf.infra['psql']['user'],
+                                    passwd=conf.infra['psql']['pass'],
+                                    host=conf.infra['psql']['host'],
+                                    port=conf.infra['psql']['port'],
+                                    dbname=conf.infra['psql']['db'])
+
+    with open(conf.infra['psql']['nlp']['requetes'], 'r', encoding='utf-8') as file:
+        sql_reqs = file.read()
+
+    stats_df = []
+    for query in sql_reqs.split(';'):
+        if query.startswith('\n'):
+            query = query[1:]
+        if not query:
+            continue
+
+        new_df = pd.read_sql_query(query, client)
+        stats_df.append(new_df.to_string(index=False))
+
+    logger.info("Données en base - \n%s", '\n'.join(stats_df))
+
+    client.dispose()
