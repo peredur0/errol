@@ -1,0 +1,7 @@
+\selectlanguage *{french}
+\beamer@sectionintoc {1}{Général}{4}{0}{1}
+\beamer@sectionintoc {2}{Fouille}{8}{0}{2}
+\beamer@sectionintoc {3}{Caractéristiques}{21}{0}{3}
+\beamer@sectionintoc {4}{Traitement du langage}{25}{0}{4}
+\beamer@sectionintoc {5}{Vectorisation}{27}{0}{5}
+\beamer@sectionintoc {6}{Conclusion}{31}{0}{6}
