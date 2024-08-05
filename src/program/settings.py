@@ -44,7 +44,7 @@ def init_log(debug):
     mods = ['__main__',
             'src.program.settings',
             'src.stages.develop', 'src.stages.fouille', 'src.stages.nlp', 'src.stages.features',
-            'src.stages.vecteurs',
+            'src.stages.vecteurs', 'src.stages.train',
             'src.modules.cmd_docker', 'src.modules.cmd_sqlite', 'src.modules.cmd_mongo',
             'src.modules.cmd_psql', 'src.modules.word_count', 'src.modules.importation',
             'src.modules.transformation', 'src.modules.nettoyage', 'src.modules.graph',
@@ -149,6 +149,15 @@ class Settings:
                 if not cmd_docker.container_up(psql_cont):
                     logger.error('Docker conteneur %s non disponible', psql_cont)
                     sys.exit(1)
+
+            case "train":
+                psql_cont = conf.get('infra', 'psql_container')
+                if not cmd_docker.container_up(psql_cont):
+                    logger.error('Docker conteneur %s non disponible', psql_cont)
+                    sys.exit(1)
+                self.args['models'] = arguments.models
+                self.infra['storage'] = conf.get('infra', 'model_store')
+                os.makedirs(self.infra['storage'], exist_ok=True)
 
             case _:
                 logger.error("Etape %s non reconnue", self.stage)

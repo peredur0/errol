@@ -83,7 +83,7 @@ def args_handler():
     subparsers.add_parser('nlp', help='Traitement du langage naturel')
 
     parser_vecteurs = subparsers.add_parser('vecteurs',
-                                            help="Vectorise les documents1")
+                                            help="Vectorise les documents")
 
     parser_vecteurs.add_argument('method',
                                  help="Methode de vectorisation",
@@ -104,5 +104,18 @@ def args_handler():
                                  help="Affiche les données statistiques sous forme de graph",
                                  action='store_true',
                                  default=False)
+
+    parser_train = subparsers.add_parser('train',
+                                         help='Entrainement des modèles')
+    models = {
+        'rtf': 'Random Tree Forest',
+        'svm': 'Support Vector Machine'
+    }
+    model_txt = ' | '.join([f'{abr}({nom})' for abr, nom in models.items()])
+    help_text = f"Modèles disponibles: {model_txt}"
+    parser_train.add_argument('models',
+                              help=help_text,
+                              nargs='+',
+                              choices=models.keys())
     subparsers.required = True
     return parser.parse_args()
