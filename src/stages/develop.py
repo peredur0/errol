@@ -7,6 +7,9 @@ import logging
 
 import pandas as pd
 from sklearn import preprocessing
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import precision_recall_fscore_support as score
+from sklearn.model_selection import train_test_split, GridSearchCV
 
 from src.modules import graph
 from src.modules import cmd_psql
@@ -106,12 +109,47 @@ def get_categories(conf):
     return vecteurs
 
 
-def create_random_forest(conf, train_dfs):
+def create_random_forest(datasets):
     """
     Créer un modèle IA via une random tree forest:
     :param conf: <Settings>
-    :param full_df: <DataFrame>
+    :param datasets: <list>
+    :return: <dict>
     """
+    logger.info("Début de la création de la random tree forest")
+    x_train, x_test, y_train, y_test = datasets
+    alg_decision_tree = RandomForestClassifier(n_estimators=5, max_depth=100, n_jobs=-1)
+    model = alg_decision_tree.fit(x_train, y_train)
+    predictions = model.predict(x_test)
+    precision, recall, fscore, support = score(y_test, predictions, pos_label=1, average='binary')
+
+    results = {
+        'model': model,
+        'precision': precision,
+        'recall': recall,
+        'fscore': fscore,
+        'support': support,
+        'accuracy': (predictions == y_test).sum() / len(predictions)
+    }
+    return results
+
+def normalize(dataframe, normalizer, exclude=None):
+    """
+    Normalise les données selon une certaine méthode.
+    :param dataframe: <Dataframe>
+    :param normalizer: <sklean.prepocessing>
+    :param exclude: <list>
+    """
+    if not exclude:
+        exclude = []
+
+    for col in dataframe.columns:
+        if col in exclude:
+            continue
+
+        data = dataframe[[col]].values.astype(float)
+        dataframe[col] = normalizer.fit_transform(data)
+
 
 def main(conf):
     """
@@ -130,3 +168,23 @@ def main(conf):
     logger.info("Nombre de messages: %s - Nombre de caractéristiques: %s",
                 full_df.shape[0],
                 full_df.shape[1])
+
+    logger.debug("Préparation des données")
+    normalize(full_df, preprocessing.StandardScaler(), exclude=['id_message', 'cat', 'categorie'])
+
+    cat_df = full_df['cat']
+    vect_feat = full_df.copy()
+    vect_feat.drop(['cat', 'categorie', 'id_message'], axis=1, inplace=True)
+
+    vect_only = vect_feat.copy()
+    for col in vect_only.columns:
+        if not col.startswith('m_'):
+            vect_only.drop(col, axis=1, inplace=True)
+
+    datasets = {
+        "vect_feat": train_test_split(vect_feat, cat_df, test_size=0.25),
+        "vect_only": train_test_split(vect_only, cat_df, test_size=0.25)
+    }
+
+    logger.info("RandomTree Forest avec le vecteur complet")
+    create_random_forest(conf, datasets['vect_feat'])
