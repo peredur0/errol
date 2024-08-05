@@ -4,14 +4,15 @@ Fichier pour le développement
 """
 
 import logging
+import pickle
 
 import pandas as pd
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import precision_recall_fscore_support as score
 from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn import svm
 
-from src.modules import graph
 from src.modules import cmd_psql
 
 logger = logging.getLogger(__name__)
@@ -111,12 +112,10 @@ def get_categories(conf):
 
 def create_random_forest(datasets):
     """
-    Créer un modèle IA via une random tree forest:
-    :param conf: <Settings>
+    Créer un modèle IA via une random tree forest
     :param datasets: <list>
     :return: <dict>
     """
-    logger.info("Début de la création de la random tree forest")
     x_train, x_test, y_train, y_test = datasets
     alg_decision_tree = RandomForestClassifier(n_estimators=5, max_depth=100, n_jobs=-1)
     model = alg_decision_tree.fit(x_train, y_train)
@@ -128,10 +127,39 @@ def create_random_forest(datasets):
         'precision': precision,
         'recall': recall,
         'fscore': fscore,
-        'support': support,
         'accuracy': (predictions == y_test).sum() / len(predictions)
     }
     return results
+
+
+def create_svm(datasets):
+    """
+    Créer un modèle IA via une random tree forest
+    :param datasets: <list>
+    :return: <dict>
+    """
+    result = {}
+    x_train, x_test, y_train, y_test = datasets
+    alg_svm = svm.SVC()
+    svm_params = {'kernel': ['rbf'],
+                  'gamma': [0.0001, 0.001, 0.005, 0.01, 1, 10],
+                  'C': [0.1, 1, 5, 10, 50, 100]}
+    hyper_params_grid = GridSearchCV(alg_svm, svm_params, cv=2, scoring='accuracy', n_jobs=-1)
+    hyper_params_models = hyper_params_grid.fit(x_train, y_train)
+    result['hyper_parms'] = hyper_params_models.best_params_
+
+    best_svm = hyper_params_models.best_estimator_
+    result['model'] = best_svm
+
+    predictions = best_svm.predict(x_test)
+    precision, recall, fscore, _ = score(y_test, predictions, pos_label=1, average='binary')
+    result['precision'] = precision
+    result['recall'] = recall
+    result['fscore'] = fscore
+    result['accuracy'] = (predictions == y_test).sum() / len(predictions)
+
+    return result
+
 
 def normalize(dataframe, normalizer, exclude=None):
     """
@@ -186,5 +214,19 @@ def main(conf):
         "vect_only": train_test_split(vect_only, cat_df, test_size=0.25)
     }
 
-    logger.info("RandomTree Forest avec le vecteur complet")
-    create_random_forest(conf, datasets['vect_feat'])
+    results = {}
+    logger.info("RandomTree Forest avec les vecteurs tfidf et caractéristiques")
+    results['forest_vect_feat'] = create_random_forest(datasets['vect_feat'])
+    logger.info("RandomTree Forest avec les vecteurs tfidf seulement")
+    results['forest_vect_only'] = create_random_forest(datasets['vect_only'])
+
+    logger.info("Support Vector Machine avec les vecteurs tfidf et caractéristiques")
+    results['svm_vect_feat'] = create_svm(datasets['vect_feat'])
+    logger.info("Support Vector Machine avec les vecteurs tfidf seulement")
+    results['svm_vect_only'] = create_svm(datasets['vect_only'])
+
+
+    for key, values in results.items():
+        logger.info("%s -\tPrecision: %.3f - Recall: %.3f - Accuracy: %.3f - Fscore: %.3f",
+                    key, values['precision'], values['recall'], values['accuracy'],
+                    values['fscore'])
