@@ -210,6 +210,7 @@ def main(conf):
 
     full_df = tfidf_vect.merge(other_feat, on='id_message')
     full_df = full_df.merge(categories, on='id_message')
+    full_df = full_df.sort_index(axis=1)
 
     logger.info("Nombre de messages: %s - Nombre de caractéristiques: %s",
                 full_df.shape[0],

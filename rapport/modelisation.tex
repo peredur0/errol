@@ -154,7 +154,14 @@ $ du -h models/*
     Concernant les métriques à proprement parler, les résultats peuvent varier en fonction du découpage aléatoire lors de la création des sets d'entrainement et de tests.
     Pour les 4 modèles le FScore est de 98\% et la différence se joue au dixième.
     Cet entrainement semble montrer que l'ajout des caractéristiques (addons) a une influence positive sur la classification.
-    Cependant, cela n'a pas été systématiquement le cas lors de mes tests précédents.\\
+    Cependant, cela n'a pas été systématiquement le cas lors de mes tests précédents.
+    Les valeurs de tests d'une seconde execution m'ont donné les résultats suivants :
+\begin{verbatimtab}
+rtf_vect_feat - Precision: 0.975 - Recall: 0.997 - Accuracy: 0.980 - Fscore: 0.986
+rtf_vect_only - Precision: 0.985 - Recall: 0.994 - Accuracy: 0.985 - Fscore: 0.989
+svm_vect_feat - Precision: 0.966 - Recall: 0.995 - Accuracy: 0.971 - Fscore: 0.980
+svm_vect_only - Precision: 0.976 - Recall: 0.996 - Accuracy: 0.980 - Fscore: 0.986
+\end{verbatimtab}
 
-    Ici, le modèle avec les meilleurs résultats est la Random Tree Forest entrainée avec toutes les données.
+    Dans tous les cas, le fscore avoisine les $98\%$.
     Je pense qu'une validation pourrait être utile avec des mails qui n'ont pas été traité lors des étapes précédentes (NLP et autres).
