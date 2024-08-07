@@ -1,18 +1,22 @@
-2024-08-05 23:00:33,037 [INFO] - (src.program.settings) : Initialisation du programme pour la phase train - OK
-2024-08-05 23:00:33,038 [INFO] - (src.stages.train) : Entrainement des modèles
-2024-08-05 23:00:33,038 [INFO] - (src.stages.train) : Récupération des caractéristiques
-2024-08-05 23:00:34,231 [INFO] - (src.stages.train) : Nombre de messages: 5333 - Nombre de caractéristiques: 2951
-2024-08-05 23:00:36,607 [INFO] - (src.stages.train) : RandomTree Forest avec les vecteurs tfidf et caractéristiques
-2024-08-05 23:00:36,696 [INFO] - (src.stages.train) : RandomTree Forest avec les vecteurs tfidf seulement
-2024-08-05 23:00:36,792 [INFO] - (src.stages.train) : Support Vector Machine avec les vecteurs tfidf et caractéristiques
-2024-08-05 23:07:02,730 [INFO] - (src.stages.train) : Support Vector Machine avec les vecteurs tfidf seulement
-2024-08-05 23:13:25,279 [INFO] - (src.stages.train) : rtf_vect_feat - Precision: 0.964 - Recall: 0.963 - Accuracy: 0.947 - Fscore: 0.963
-2024-08-05 23:13:25,280 [INFO] - (src.stages.train) : rtf_vect_only - Precision: 0.965 - Recall: 0.968 - Accuracy: 0.951 - Fscore: 0.967
-2024-08-05 23:13:25,281 [INFO] - (src.stages.train) : svm_vect_feat - Precision: 0.981 - Recall: 0.996 - Accuracy: 0.983 - Fscore: 0.988
-2024-08-05 23:13:25,306 [INFO] - (src.stages.train) : svm_vect_only - Precision: 0.984 - Recall: 0.995 - Accuracy: 0.984 - Fscore: 0.989
+$ ./errol.py train rtf svm
+2024-08-06 22:32:24,888 [INFO] - (src.program.settings) : Initialisation du programme pour la phase train - OK
+2024-08-06 22:32:24,888 [INFO] - (src.stages.train) : Entrainement des modèles
+2024-08-06 22:32:24,888 [INFO] - (src.stages.train) : Récupération des caractéristiques
+2024-08-06 22:32:26,068 [INFO] - (src.stages.train) : Nombre de messages: 5333 - Nombre de caractéristiques: 2951
+2024-08-06 22:32:28,439 [INFO] - (src.stages.train) : ID pour les ham - 1
+2024-08-06 22:32:28,439 [INFO] - (src.stages.train) : RandomTree Forest avec les vecteurs tfidf et caractéristiques
+2024-08-06 22:32:28,868 [INFO] - (src.stages.train) : RandomTree Forest avec les vecteurs tfidf seulement
+2024-08-06 22:32:29,314 [INFO] - (src.stages.train) : Support Vector Machine avec les vecteurs tfidf et caractéristiques
+2024-08-06 22:38:44,097 [INFO] - (src.stages.train) : Support Vector Machine avec les vecteurs tfidf seulement
+2024-08-06 22:45:06,374 [INFO] - (src.stages.train) : rtf_vect_feat - Precision: 0.981 - Recall: 0.996 - Accuracy: 0.984 - Fscore: 0.989
+2024-08-06 22:45:06,388 [INFO] - (src.stages.train) : rtf_vect_only - Precision: 0.981 - Recall: 0.981 - Accuracy: 0.973 - Fscore: 0.981
+2024-08-06 22:45:06,402 [INFO] - (src.stages.train) : svm_vect_feat - Precision: 0.984 - Recall: 0.991 - Accuracy: 0.982 - Fscore: 0.987
+2024-08-06 22:45:06,430 [INFO] - (src.stages.train) : svm_vect_only - Precision: 0.982 - Recall: 0.991 - Accuracy: 0.981 - Fscore: 0.986
 
-du -h models/*
-336K	models/rtf_vect_feat.pickle
-360K	models/rtf_vect_only.pickle
-17M	models/svm_vect_feat.pickle
-18M	models/svm_vect_only.pickle
+
+$ du -h models/*
+5,9M	models/rtf_vect_feat.pickle
+6,6M	models/rtf_vect_only.pickle
+18M	models/svm_vect_feat.pickle
+19M	models/svm_vect_only.pickle
+

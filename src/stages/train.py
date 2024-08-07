@@ -110,17 +110,19 @@ def get_categories(conf):
     return vecteurs
 
 
-def create_random_forest(datasets):
+def create_random_forest(datasets, pos_label):
     """
     Créer un modèle IA via une random tree forest
     :param datasets: <list>
+    :param pos_label: <int>
     :return: <dict>
     """
     x_train, x_test, y_train, y_test = datasets
-    alg_decision_tree = RandomForestClassifier(n_estimators=5, max_depth=100, n_jobs=-1)
+    alg_decision_tree = RandomForestClassifier(n_estimators=100, max_depth=100, n_jobs=-1)
     model = alg_decision_tree.fit(x_train, y_train)
+
     predictions = model.predict(x_test)
-    precision, recall, fscore, _ = score(y_test, predictions, pos_label=1, average='binary')
+    precision, recall, fscore, _ = score(y_test, predictions, pos_label=pos_label, average='binary')
 
     results = {
         'model': model,
@@ -132,10 +134,11 @@ def create_random_forest(datasets):
     return results
 
 
-def create_svm(datasets):
+def create_svm(datasets, pos_label):
     """
     Créer un modèle IA via une random tree forest
     :param datasets: <list>
+    :param pos_label: <int>
     :return: <dict>
     """
     result = {}
@@ -152,7 +155,7 @@ def create_svm(datasets):
     result['model'] = best_svm
 
     predictions = best_svm.predict(x_test)
-    precision, recall, fscore, _ = score(y_test, predictions, pos_label=1, average='binary')
+    precision, recall, fscore, _ = score(y_test, predictions, pos_label=pos_label, average='binary')
     result['precision'] = precision
     result['recall'] = recall
     result['fscore'] = fscore
@@ -176,6 +179,22 @@ def normalize(dataframe, normalizer, exclude=None):
             continue
         data = dataframe[[col]].values.astype(float)
         dataframe[col] = normalizer.fit_transform(data)
+
+
+def get_ham_id(conf):
+    """
+    Récupère l'id_categorie des ham
+    :param conf: <Settings>
+    :return: <int>
+    """
+    client = cmd_psql.connect_db(user=conf.infra['psql']['user'],
+                                 passwd=conf.infra['psql']['pass'],
+                                 host=conf.infra['psql']['host'],
+                                 port=conf.infra['psql']['port'],
+                                 dbname=conf.infra['psql']['db'])
+    id_ham = cmd_psql.get_unique_data(client, 'categories', 'id_categorie', "nom LIKE 'ham'")
+    client.close()
+    return id_ham
 
 
 def main(conf):
@@ -212,21 +231,23 @@ def main(conf):
         "vect_feat": train_test_split(vect_feat, cat_df, test_size=0.25),
         "vect_only": train_test_split(vect_only, cat_df, test_size=0.25)
     }
+    id_ham = get_ham_id(conf)
+    logger.info("ID pour les ham - %i", id_ham)
 
     results = {}
     for model in conf.args['models']:
         if model == 'rtf':
             logger.info("RandomTree Forest avec les vecteurs tfidf et caractéristiques")
-            results['rtf_vect_feat'] = create_random_forest(datasets['vect_feat'])
+            results['rtf_vect_feat'] = create_random_forest(datasets['vect_feat'], id_ham)
             logger.info("RandomTree Forest avec les vecteurs tfidf seulement")
-            results['rtf_vect_only'] = create_random_forest(datasets['vect_only'])
+            results['rtf_vect_only'] = create_random_forest(datasets['vect_only'], id_ham)
             continue
 
         if model == 'svm':
             logger.info("Support Vector Machine avec les vecteurs tfidf et caractéristiques")
-            results['svm_vect_feat'] = create_svm(datasets['vect_feat'])
+            results['svm_vect_feat'] = create_svm(datasets['vect_feat'], id_ham)
             logger.info("Support Vector Machine avec les vecteurs tfidf seulement")
-            results['svm_vect_only'] = create_svm(datasets['vect_only'])
+            results['svm_vect_only'] = create_svm(datasets['vect_only'], id_ham)
             continue
 
     for key, values in results.items():

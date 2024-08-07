@@ -1,2 +1,160 @@
-\subsection{Entraînements}
-\subsection{Validation}
+La dernière phase de ce projet est de réaliser un modèle d'intelligence artificielle capable de classifier les mails, en se basant sur les données extraites des phases précédentes.
+Nous allons tester ici 2 types de modèle et voir si l'un est plus performant qu'un autre.
+
+\subsection*{Généralités}
+    \paragraph{Random Tree Forest}
+        Une Random Tree Forest va se baser sur un ensemble d'arbre de décision pour réaliser la catégorisation.
+        L'idée principale d'un arbre de décision est de sélectionner une variable dit de segmentation, qui va être utilisée pour couper l'ensemble de données en deux.
+        Par défault scikit learn utilise l'indice de GINI pour déterminer cette variable.
+        L'équation suivante est utilisée dans le  \emph{RandomTreeClassifier}
+
+        \begin{eqnarray*}
+            H(Q_m) = \sum_k p_{mk} (1 - p_{mk})
+        \end{eqnarray*}
+
+        $Q_m$ représente le nœud dans l'arbre de décision.
+        $p_{mk}$ est la proportion des éléments de la classe $k$ dans le nœud.
+        Le résultat de ce calcul va donner une idée de la dispersion des données au sein du groupe.
+        Un indice Gini à 0 pour un nœud signifie que tous les éléments de ce nœud sont du même type.
+        Un indice de $0.5$, correspond au niveau maximum de distribution.
+        Il y a autant d'éléments de chaque catégorie dans le groupe observé.\\
+
+        Pour chaque nœud l'algorithme va alors chercher la meilleure caractéristique pour séparer les données.
+        Cette opération va se répéter jusqu'à arriver à un nœud pur ou à la profondeur maximale autorisée.\\
+
+        Les arbres sont créés en utilisant des échantillons aléatoires des données.
+        La classification finale est décidé au résultat majoritaire entre tous les arbres.\\
+
+        Les paramètres principaux sont :
+        \begin{itemize}
+            \item n\_estimator - nombre d'arbres - ici, on utilise la valeur par défaut $100$
+            \item max\_depth - profondeur maximum de l'arbre - en se basant sur la distribution des mails dans les dimensions du vecteur (voir Figure~\ref{fig:tfidf_distr}), on va aller à une profondeur de $100$
+        \end{itemize}
+
+    \paragraph{Support Vector Machine}
+        L'algorithme Support Vector Machine va chercher à trouver un hyperplan capable de séparer les données.
+        Cet hyperplan doit avoir la plus grande marge possible pour être capable de généraliser le plus possible.
+
+        Plusieurs variables sont paramétrables pour un modèle SVM\@.
+        L'utilisation de \emph{GridSearchCV} va permettre de fournir une liste de valeur possible pour chaque paramètre et de sélectionner association la plus performante.
+        Les paramètres donnés à \emph{GridSearchCV} pour évaluation sont :
+        \subparagraph{Kernel}
+            Le Kernel est fonction noyau utilisée pour transformer les données et trouver un hyperplan linéaire.
+            Dans notre cas, on n'utilisera que le noyau \emph{rbf} (Radial Basis Function).
+            Ce mode semble être plus adapté à nos données qu'un noyau linéaire ou polynomial.
+
+        \subparagraph{C}
+            Ce paramètre va permettre de donner une tolérance à l'erreur plus grande lors de phase d'apprentissage.
+            Cela va permettre d'avoir des marges plus grandes autour de l'hyperplan, et d'avoir une meilleure capacité de généralisation.
+            Cette opération se fait en attribuant un certain poids aux erreurs.
+            Plus le paramètre C va être petit plus les marges seront grandes.\\
+            Valeurs utilisées - $[0.1, 1, 5, 10, 50, 100]$
+
+        \subparagraph{Gamma}
+            Ce paramètre n'est utilisé qu'avec les noyaux non linéaires.
+            Il permet de gérer la distance pour que 2 points soient considérés comme faisant partie d'un même groupement.
+            Avec une valeur élevée de Gamma, il faut que ces 2 points soient très proche.
+            A contrario, une valeur faible les observations seront réparties dans des groupes quasi linéaires.\\
+            Valeurs utilisées - $[0.0001, 0.001, 0.005, 0.01, 1, 10]$
+
+    \paragraph{Normalisation}
+        La normalisation doit permettre de mettre à la même échelle toutes les caractéristiques d'un jeu de données.
+        Nous avons dans notre dataset une grande disparité d'échelle et de distribution.
+        La normalisation Standard, disponible dans scikit learn, va transformer chaque caractéristique pour que la moyenne soit égale à 0 avec un écart type de 1.
+        Cette opération doit permettre de faciliter le traitement par les algorithmes d'apprentissage automatique.
+
+
+\subsection{Création des modèles}
+    Cette section va s'intéresser aux étapes de la création des modèles.
+
+    \paragraph{Phase préparatoire}
+        L'ensemble des données (vecteur tfidf et caractéristiques retenues) est récupérée depuis la base Postgres et stockée dans un dataframe Pandas.
+        L'ensemble des caractéristiques du dataset est normalisé pour harmoniser les échelles.\\
+
+        Trois sous-ensembles seront utilisés :
+        \begin{itemize}
+            \item Vecteur TFIDF + caractéristiques (nombre, url, nombre\_hapax, ratio\_hapax\_uniques, majuscules, espaces)
+            \item Vecteur TFIDF
+            \item Id\_categorie - correspond à la table de résultat
+        \end{itemize}
+        Ces jeux de données sont séparés en ensemble d'entrainement ($75\%$) et de test ($25\%$) aléatoirement.
+
+        L'identifiant de la catégorie \emph{ham} est également récupéré pour être utilisé comme résultat positif.
+        
+    \paragraph{Entrainement}
+        Les deux types de modèles Random Tree Forest (rtf) et Support Vector Machine (svm) sont entrainé avec les ensembles vecteur seul et avec addons.
+        \begin{lstlisting}[title=Entrainement des modèles, language=Python,label={lst:train}]
+alg_decision_tree = RandomForestClassifier(n_estimators=100, max_depth=100, n_jobs=-1)
+ model = alg_decision_tree.fit(x_train, y_train)
+ ...
+alg_svm = svm.SVC()
+svm_params = {'kernel': ['rbf'],
+              'gamma': [0.0001, 0.001, 0.005, 0.01, 1, 10],
+              'C': [0.1, 1, 5, 10, 50, 100]}
+hyper_params_grid = GridSearchCV(alg_svm, svm_params, cv=2, scoring='accuracy', n_jobs=-1)
+hyper_params_models = hyper_params_grid.fit(x_train, y_train)
+best_svm = hyper_params_models.best_estimator_
+        \end{lstlisting}
+
+        La recherche du modèle SVM nécessite l'utilisation de GridSearchCV pour trouver la meilleure combinaison entre les différents paramètres possibles.
+
+
+    \paragraph{Evaluation des modèles}
+        L'évaluation des modèles générés est faites avec les données de test mises de cotés lors de la phase de préparation.
+        \begin{lstlisting}[title=Evaluation des modèles, language=Python,label={lst:train}]
+predictions = model.predict(x_test)
+precision, recall, fscore, _ = score(y_test, predictions, pos_label=pos_label, average='binary')
+...
+predictions = best_svm.predict(x_test)
+precision, recall, fscore, _ = score(y_test, predictions, pos_label=pos_label, average='binary')
+        \end{lstlisting}
+        Les métriques utilisées sont :
+        \begin{itemize}
+            \item Precision (P) - ici Ham correctement classifiés
+            \item Recall (R) - ici Spam correctement classifiés
+            \item Accuracy - Documents correctement classifiés sur l'ensemble du jeu de test
+            \item Fscore - Moyenne harmonique utilisée dans les classes sont déséquilibrées - $2(P \cdot R)/(P + R)$
+        \end{itemize}
+
+        A l'issue de cette phase d'évaluation, les modèles sont sauvegardés en utilisant le module pickle.
+
+    \subsubsection{Résultat}
+\begin{verbatimtab}
+$ ./errol.py train rtf svm
+22:32:24,888 : Initialisation du programme pour la phase train - OK
+22:32:24,888 : Entrainement des modèles
+22:32:24,888 : Récupération des caractéristiques
+22:32:26,068 : Nombre de messages: 5333 - Nombre de caractéristiques: 2951
+22:32:28,439 : ID pour les ham - 1
+22:32:28,439 : RandomTree Forest avec les vecteurs tfidf et caractéristiques
+22:32:28,868 : RandomTree Forest avec les vecteurs tfidf seulement
+22:32:29,314 : Support Vector Machine avec les vecteurs tfidf et caractéristiques
+22:38:44,097 : Support Vector Machine avec les vecteurs tfidf seulement
+22:45:06,374 : rtf_vect_feat - Prec: 0.981 - Rec: 0.996 - Acc: 0.984 - Fsc: 0.989
+22:45:06,388 : rtf_vect_only - Prec: 0.981 - Rec: 0.981 - Acc: 0.973 - Fsc: 0.981
+22:45:06,402 : svm_vect_feat - Prec: 0.984 - Rec: 0.991 - Acc: 0.982 - Fsc: 0.987
+22:45:06,430 : svm_vect_only - Prec: 0.982 - Rec: 0.991 - Acc: 0.981 - Fsc: 0.986
+
+$ du -h models/*
+5,9M	models/rtf_vect_feat.pickle
+6,6M	models/rtf_vect_only.pickle
+18M	models/svm_vect_feat.pickle
+19M	models/svm_vect_only.pickle
+\end{verbatimtab}
+
+\subsection*{Constatations}
+    La première constatation concerne le temps d'entrainement.
+    La génération des forets est quasiment instantanée même avec 100 arbres et une profondeur de 100.
+    L'entrainement des modèles SVM via GridSearchCV a nécessité environ 7 minutes dans les deux cas et consommant 100\% des 12 CPU installé sur ma machine.\\
+
+    La taille des modèles sauvegardés est également très différente.
+    Les forêts sont généralement plus petite que les SVM\@.
+    De plus, les modèles ayant été entrainés avec les données complètes (tfidf + addons) sont plus léger que les modèles analogues entrainés uniquement avec le vecteur tfidf.\\
+
+    Concernant les métriques à proprement parler, les résultats peuvent varier en fonction du découpage aléatoire lors de la création des sets d'entrainement et de tests.
+    Pour les 4 modèles le FScore est de 98\% et la différence se joue au dixième.
+    Cet entrainement semble montrer que l'ajout des caractéristiques (addons) a une influence positive sur la classification.
+    Cependant, cela n'a pas été systématiquement le cas lors de mes tests précédents.\\
+
+    Ici, le modèle avec les meilleurs résultats est la Random Tree Forest entrainée avec toutes les données.
+    Je pense qu'une validation pourrait être utile avec des mails qui n'ont pas été traité lors des étapes précédentes (NLP et autres).
