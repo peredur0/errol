@@ -65,13 +65,6 @@ def args_handler():
         metavar="DOSSIER_SPAM",
         nargs='*'
     )
-    source.add_argument(
-        "-s", "--fichier_csv",
-        dest="fichier_csv",
-        help="fichier CSV contenant les emails stockés dans un fichier CSV",
-        metavar="FICHIER_CSV",
-        nargs='*'
-    )
 
     parser_features = subparsers.add_parser('features',
                                             help="Recherche des caractéristiques")
