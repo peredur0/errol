@@ -44,7 +44,7 @@ def init_log(debug):
     mods = ['__main__',
             'src.program.settings',
             'src.stages.develop', 'src.stages.fouille', 'src.stages.nlp', 'src.stages.features',
-            'src.stages.vecteurs', 'src.stages.train',
+            'src.stages.vecteurs', 'src.stages.train', 'src.stages.check',
             'src.modules.cmd_docker', 'src.modules.cmd_sqlite', 'src.modules.cmd_mongo',
             'src.modules.cmd_psql', 'src.modules.word_count', 'src.modules.importation',
             'src.modules.transformation', 'src.modules.nettoyage', 'src.modules.graph',
@@ -100,7 +100,7 @@ class Settings:
                 'host': conf.get('mongo', 'host'),
                 'port': conf.get('mongo', 'port'),
                 'db': conf.get('mongo', 'db'),
-                'collection': conf.get('mongo', 'collection'),
+                'collection': conf.get('mongo', 'collection'), # todo: remove
                 'user_name': conf.get('mongo', 'user'),
                 'user_pwd': conf.get('mongo', 'password')
             },
@@ -132,6 +132,8 @@ class Settings:
                 self.args['ham'] = arguments.ham
                 self.args['spam'] = arguments.spam
                 self.args['graph'] = arguments.graph
+                self.args['stats'] = arguments.stats
+                self.infra['mongo']['collection'] = arguments.collection[0]
 
                 for cont in self.infra['containers']:
                     if not cmd_docker.container_up(cont):
@@ -157,6 +159,14 @@ class Settings:
                 self.args['models'] = arguments.models
                 self.infra['storage'] = conf.get('infra', 'model_store')
                 os.makedirs(self.infra['storage'], exist_ok=True)
+
+            case "check":
+                psql_cont = conf.get('infra', 'psql_container')
+                if not cmd_docker.container_up(psql_cont):
+                    logger.error('Docker conteneur %s non disponible', psql_cont)
+                    sys.exit(1)
+                self.args['models'] = arguments.models
+                self.infra['storage'] = conf.get('infra', 'model_store')
 
             case _:
                 logger.error("Etape %s non reconnue", self.stage)

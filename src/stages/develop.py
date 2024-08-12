@@ -5,7 +5,6 @@ Fichier pour le développement
 
 import logging
 
-
 logger = logging.getLogger(__name__)
 
 

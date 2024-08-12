@@ -7,6 +7,7 @@ import hashlib
 import json
 import logging
 import multiprocessing
+import sys
 
 import langdetect
 import tqdm
@@ -42,7 +43,8 @@ def main(conf):
         except TypeError:
             logger.warning("%s - aucun dossier donné en argument", cat)
             continue
-    word_count.fouille_wc(files_stack, conf, 'récolte')
+    if conf.args['stats']:
+        word_count.fouille_wc(files_stack, conf, 'récolte')
 
     logger.info("Création des documents")
     pool_args = [(file, cat) for cat, f_list in files_stack.items() for file in list(f_list)]
@@ -54,7 +56,9 @@ def main(conf):
                                 disable=conf.args['progress_bar']))
     result = [doc for doc in result if doc]
     logger.info("Documents créés - %s", len(result))
-    word_count.fouille_wc(result, conf, 'création')
+
+    if conf.args['stats']:
+        word_count.fouille_wc(result, conf, 'création')
 
     logger.info("Mise en base")
     mise_en_base(result, conf)
@@ -63,9 +67,9 @@ def main(conf):
     db = client[conf.infra['mongo']['db']]
     collection = db[conf.infra['mongo']['collection']]
     result = cmd_mongo.get_all_documents(collection, ['categorie', 'message'])
-    word_count.fouille_wc(result, conf, 'mise_en_base')
-
-    get_stats(conf)
+    if conf.args['stats']:
+        word_count.fouille_wc(result, conf, 'mise_en_base')
+        get_stats(conf)
 
     logger.info('Fin du processus de fouille initial')
 
@@ -75,10 +79,11 @@ def databases_init(conf):
     Initialisation des bases de données
     :param conf: <Settings>
     """
-    logger.info("Création de la base SQLITE")
-    cli_sqlite = cmd_sqlite.connect(conf.infra['sqlite']['file'])
-    cmd_sqlite.create_tables(cli_sqlite, conf.infra['sqlite']['schema_stats'])
-    cli_sqlite.close()
+    if conf.args['stats']:
+        logger.info("Création de la base SQLITE")
+        cli_sqlite = cmd_sqlite.connect(conf.infra['sqlite']['file'])
+        cmd_sqlite.create_tables(cli_sqlite, conf.infra['sqlite']['schema_stats'])
+        cli_sqlite.close()
 
     logger.info("Création de la base psql")
     cmd_psql.apply_databases_updates(conf, conf.infra['psql']['schema']['fouille'])
@@ -108,10 +113,6 @@ def fouille_doc(pool_args):
         logger.error("Echec de détection de la langue pour %s %s", file, err)
         return None
 
-    if lang != 'en':
-        logger.debug('Langue détectée pour %s - %s', file, lang)
-        return None
-
     new_doc = {
         'hash': hashlib.md5(body.encode()).hexdigest(),
         'categorie': cat.lower(),
@@ -126,7 +127,7 @@ def fouille_doc(pool_args):
 
 
 mongo_fields = ['categorie', 'sujet', 'expediteur', 'message', 'langue']
-psql_fields = ['hash', 'categorie']
+psql_fields = ['hash', 'categorie', 'langue']
 
 
 def mise_en_base(result, conf):
@@ -314,7 +315,9 @@ def psql_insert(psql_chunk, client):
 
     table = "messages"
     exists = [line['hash'] for line in cmd_psql.get_data(client, table, ['hash'], clause)]
-    to_insert = [{'hash': hash_mess, 'id_categorie': exists_cat.get(doc['categorie'])}
+    to_insert = [{'hash': hash_mess,
+                  'id_categorie': exists_cat.get(doc['categorie']),
+                  'langue': doc['langue']}
                  for hash_mess, doc in psql_chunk.items() if hash_mess not in exists]
     if to_insert:
         logger.info("Documents a insérés dans la table %s - %s", table, len(to_insert))

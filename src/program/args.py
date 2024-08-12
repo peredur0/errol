@@ -3,6 +3,7 @@
 Gestion des paramètres en ligne de commande
 """
 import argparse
+import os
 
 
 def args_handler():
@@ -45,10 +46,22 @@ def args_handler():
 
     parser_fouille = subparsers.add_parser('fouille',
                                            help="Réalisation des actions de fouille de données")
+    parser_fouille.add_argument('collection',
+                                help='Collection mongo ou stocker les documents',
+                                nargs=1,
+                                choices=['spamassassin', 'kaamelott'])
+
+    parser_fouille.add_argument('-s', '--stats',
+                                help='Affiche et stocke les données en cours de traitement',
+                                action='store_true',
+                                default=False)
+
     parser_fouille.add_argument("-g", "--graph",
                                 help="Affiche les données statistiques sous forme de graph",
                                 action='store_true',
                                 default=False)
+
+
 
     source = parser_fouille.add_argument_group("source de données")
     source.add_argument(
@@ -110,5 +123,16 @@ def args_handler():
                               help=help_text,
                               nargs='+',
                               choices=models.keys())
+
+    parser_check = subparsers.add_parser('check',
+                                         help="Vérification d'un message")
+    models_dir = './models'
+    trained_models = [m.split('.')[0] for m in os.listdir(models_dir)]
+    parser_check.add_argument('-m', '--models',
+                              help='Modèles à utiliser pour la vérification',
+                              nargs='+',
+                              choices=trained_models,
+                              default=trained_models)
+
     subparsers.required = True
     return parser.parse_args()

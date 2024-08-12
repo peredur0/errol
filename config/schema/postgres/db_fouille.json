@@ -33,6 +33,10 @@
               {
                 "name": "id_categorie",
                 "type": ["INT", "NOT NULL"]
+              },
+              {
+                "name": "langue",
+                "type": ["CHAR(10)"]
               }
             ],
             "foreign_keys": [
