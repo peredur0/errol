@@ -110,15 +110,17 @@ def get_categories(conf):
     return vecteurs
 
 
-def create_random_forest(datasets, pos_label):
+def create_random_forest(conf, datasets, pos_label):
     """
     Créer un modèle IA via une random tree forest
+    :param conf: <Settings>
     :param datasets: <list>
     :param pos_label: <int>
     :return: <dict>
     """
     x_train, x_test, y_train, y_test = datasets
-    alg_decision_tree = RandomForestClassifier(n_estimators=100, max_depth=100, n_jobs=-1)
+    alg_decision_tree = RandomForestClassifier(n_estimators=100, max_depth=100,
+                                               n_jobs=conf.infra['cpu_available'])
     model = alg_decision_tree.fit(x_train, y_train)
 
     predictions = model.predict(x_test)
@@ -134,9 +136,10 @@ def create_random_forest(datasets, pos_label):
     return results
 
 
-def create_svm(datasets, pos_label):
+def create_svm(conf, datasets, pos_label):
     """
     Créer un modèle IA via une random tree forest
+    :param conf: <Settings>
     :param datasets: <list>
     :param pos_label: <int>
     :return: <dict>
@@ -147,7 +150,8 @@ def create_svm(datasets, pos_label):
     svm_params = {'kernel': ['rbf'],
                   'gamma': [0.0001, 0.001, 0.005, 0.01, 1, 10],
                   'C': [0.1, 1, 5, 10, 50, 100]}
-    hyper_params_grid = GridSearchCV(alg_svm, svm_params, cv=2, scoring='accuracy', n_jobs=-1)
+    hyper_params_grid = GridSearchCV(alg_svm, svm_params, cv=2, scoring='accuracy',
+                                     n_jobs=conf.infra['cpu_available'])
     hyper_params_models = hyper_params_grid.fit(x_train, y_train)
     result['hyper_parms'] = hyper_params_models.best_params_
 

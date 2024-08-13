@@ -86,9 +86,7 @@ class Settings:
                     'nlp': conf.get('psql', 'schema_nlp'),
                     'tfidf': conf.get('psql', 'schema_tfidf')
                 },
-                'nlp': {
-                    'requetes': conf.get('psql', 'nlp_sql')
-                },
+                'queries': conf.get('psql', 'queries'),
                 'vecteurs': {
                     'tfidf': {
                         'requetes': conf.get('psql', 'tfidf_sql'),
@@ -117,12 +115,18 @@ class Settings:
 
             case 'features':
                 self.args['graph'] = arguments.graph
+                self.args['langue'] = arguments.langue[0]
+                self.args['stats'] = arguments.stats
+                self.infra['mongo']['collection'] = arguments.collection
                 for cont in self.infra['containers']:
                     if not cmd_docker.container_up(cont):
                         logger.error('Docker conteneur %s non disponible', cont)
                         sys.exit(1)
 
             case 'nlp':
+                self.args['stats'] = arguments.stats
+                self.args['langue'] = arguments.langue[0]
+                self.infra['mongo']['collection'] = arguments.collection
                 for cont in self.infra['containers']:
                     if not cmd_docker.container_up(cont):
                         logger.error('Docker conteneur %s non disponible', cont)

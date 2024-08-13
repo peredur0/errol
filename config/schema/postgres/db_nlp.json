@@ -31,11 +31,15 @@
             "fields": [
               {
                 "name": "id_mot",
-                "type": ["SERIAL", "PRIMARY KEY"]
+                "type": ["SERIAL", "UNIQUE"]
               },
               {
                 "name": "mot",
-                "type": ["VARCHAR", "UNIQUE", "NOT NULL"]
+                "type": ["VARCHAR", "NOT NULL"]
+              },
+              {
+                "name": "langue",
+                "type": ["VARCHAR", "NOT NULL"]
               },
               {
                 "name": "freq_corpus",
@@ -53,7 +57,8 @@
                 "name": "freq_ham",
                 "type": ["INT", "DEFAULT 0"]
               }
-            ]
+            ],
+            "primary_key": ["id_mot", "langue"]
           },
           {
             "name": "nlp_mots_documents",

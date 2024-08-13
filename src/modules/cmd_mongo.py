@@ -88,25 +88,29 @@ def insert_document(document, collection):
         return res.inserted_id
 
 
-def get_all_documents(collection, include=None, limit=None):
+def get_all_documents(collection, d_filter=None, include=None, limit=None):
     """
     Récupère tous les documents d'une collection
     :param collection: <pymongo_Collection>
+    :param d_filter: <dict>
     :param include: <str|list>
     :param limit: <int>
     :return: <Cursor|list>
     """
+    if d_filter is None:
+        d_filter = {}
     if include is None:
         include = {}
     if isinstance(include, list):
         include = {field: 1 for field in include}
     else:
-        include = {include: 1}
+        include = {'include': 1}
+
     try:
         with pymongo.timeout(15):
             if limit:
-                return list(collection.find({}, include).limit(limit))
-            return list(collection.find({}, include))
+                return list(collection.find(d_filter, include).limit(limit))
+            return list(collection.find(d_filter, include))
     except pymongo.errors.ServerSelectionTimeoutError as err:
         logger.error(err)
         return []

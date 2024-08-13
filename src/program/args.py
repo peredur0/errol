@@ -61,8 +61,6 @@ def args_handler():
                                 action='store_true',
                                 default=False)
 
-
-
     source = parser_fouille.add_argument_group("source de données")
     source.add_argument(
         "-a", "--ham",
@@ -81,12 +79,40 @@ def args_handler():
 
     parser_features = subparsers.add_parser('features',
                                             help="Recherche des caractéristiques")
+    parser_features.add_argument('collection',
+                                 help='Collection mongo a parcourir',
+                                 nargs='+',
+                                 choices=['spamassassin', 'kaamelott'])
+    parser_features.add_argument('-l', '--langue',
+                                 help='Sélection de la langue de traitement',
+                                 nargs=1,
+                                 default='en')
+    parser_features.add_argument('-s', '--stats',
+                                 help='Affiche les données statistiques',
+                                 action='store_true',
+                                 default=False)
     parser_features.add_argument("-g", "--graph",
                                  help="Affiche les données statistiques sous forme de graph",
                                  action='store_true',
                                  default=False)
 
-    subparsers.add_parser('nlp', help='Traitement du langage naturel')
+    parser_nlp = subparsers.add_parser('nlp', help='Traitement du langage naturel')
+
+    parser_nlp.add_argument('collection',
+                            help='Collection mongo a parcourir',
+                            nargs='+',
+                            choices=['spamassassin', 'kaamelott'])
+
+    parser_nlp.add_argument('-l', '--langue',
+                            help='Sélection de la langue de traitement',
+                            nargs=1,
+                            default='en',
+                            choices=['en', 'fr'])
+
+    parser_nlp.add_argument('-s', '--stats',
+                            help='Affiche les données statistiques',
+                            action='store_true',
+                            default=False)
 
     parser_vecteurs = subparsers.add_parser('vecteurs',
                                             help="Vectorise les documents")

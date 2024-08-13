@@ -36,7 +36,7 @@
               },
               {
                 "name": "langue",
-                "type": ["CHAR(10)"]
+                "type": ["VARCHAR"]
               }
             ],
             "foreign_keys": [

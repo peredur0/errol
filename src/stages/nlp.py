@@ -2,6 +2,7 @@
 """
 Traitement NLP via Stanza et mise en base des occurrences
 """
+import json
 import re
 import datetime
 import logging
@@ -31,14 +32,22 @@ def main(conf):
     cmd_psql.apply_databases_updates(conf, conf.infra['psql']['schema']['nlp'])
 
     nltk.download("stopwords")
-    en_stop = set(stopwords.words('english'))
-    pattern = re.compile(r'\w+')
-    stz_pipe = stanza.Pipeline(lang='en', processors='tokenize,mwt,pos,lemma')
+    match conf.args['langue']:
+        case 'en':
+            stopw = set(stopwords.words('english'))
+        case 'fr':
+            stopw = set(stopwords.words('french'))
+        case _:
+            stopw = set()
 
-    documents = process_pipeline(conf, stz_pipe, pattern, en_stop)
+    pattern = re.compile(r'\w+')
+    stz_pipe = stanza.Pipeline(lang=conf.args['langue'], processors='tokenize,mwt,pos,lemma')
+
+    documents = process_pipeline(conf, stz_pipe, pattern, stopw)
     insert_pipeline(conf, documents)
 
-    nlp_stats(conf)
+    if conf.args['stats']:
+        nlp_stats(conf)
     logger.info("Fin du processus NLP")
 
 
@@ -48,10 +57,16 @@ def get_all_mails(conf):
     :param conf: <Settings>
     :return: <list> of dict
     """
-    client = cmd_mongo.connect(conf)
-    collection = client[conf.infra['mongo']['db']][conf.infra['mongo']['collection']]
-    documents = cmd_mongo.get_all_documents(collection, ['_id', 'message'])
-    client.close()
+    documents = []
+    for arg_collection in conf.infra['mongo']['collection']:
+        logger.info("Récupération des documents dans %s", arg_collection)
+        client = cmd_mongo.connect(conf)
+        collection = client[conf.infra['mongo']['db']][arg_collection]
+        documents += cmd_mongo.get_all_documents(collection,
+                                                 d_filter={'langue': conf.args['langue']},
+                                                 include=['_id', 'message'])
+        client.close()
+
     return documents
 
 
@@ -89,19 +104,20 @@ def insert_pipeline(conf, documents):
                                  host=conf.infra['psql']['host'],
                                  port=conf.infra['psql']['port'],
                                  dbname=conf.infra['psql']['db'])
+    lang = conf.args['langue']
     for data in tqdm.tqdm(documents,
                           desc="Mise en base",
                           leave=False,
                           disable=conf.args['progress_bar']):
 
         for mot, freq in data['bag'].items():
-            mot = mot.replace("'", "''")
+            mot = mot.replace("'", "")
             table = 'nlp_mots_corpus'
-            clause = f"mot LIKE '{mot}'"
+            clause = f"mot LIKE '{mot}' and langue LIKE '{lang}'"
             id_mot = cmd_psql.get_unique_data(client, table, 'id_mot', clause)
 
             if not id_mot:
-                cmd_psql.insert_data_one(client, table, {'mot': mot})
+                cmd_psql.insert_data_one(client, table, {'mot': mot, 'langue': lang})
                 id_mot = cmd_psql.get_unique_data(client, table, 'id_mot', clause)
 
             if not id_mot:
@@ -207,17 +223,12 @@ def nlp_stats(conf):
                                     port=conf.infra['psql']['port'],
                                     dbname=conf.infra['psql']['db'])
 
-    with open(conf.infra['psql']['nlp']['requetes'], 'r', encoding='utf-8') as file:
-        sql_reqs = file.read()
+    with open(conf.infra['psql']['queries'], 'r', encoding='utf-8') as file:
+        sql_queries = json.load(file)
 
     stats_df = []
-    for query in sql_reqs.split(';'):
-        if query.startswith('\n'):
-            query = query[1:]
-        if not query:
-            continue
-
-        new_df = pd.read_sql_query(query, client)
+    for query in sql_queries['sql_nlp']:
+        new_df = pd.read_sql_query(query.format(langue=conf.args['langue']), client)
         stats_df.append(new_df.to_string(index=False))
 
     logger.info("Données en base - \n%s", '\n'.join(stats_df))

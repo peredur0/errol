@@ -47,7 +47,8 @@ def main(conf):
     else:
         logger.info("Aucun fichier à traiter")
 
-    features_stats(conf)
+    if conf.args['stats']:
+        features_stats(conf)
     logger.info("Fin de la recherche des caractéristiques")
 
 
@@ -57,10 +58,16 @@ def get_all_mails(conf):
     :param conf: <Settings>
     :return: <list> of dict
     """
-    client = cmd_mongo.connect(conf)
-    collection = client[conf.infra['mongo']['db']][conf.infra['mongo']['collection']]
-    documents = cmd_mongo.get_all_documents(collection, ['_id', 'message'])
-    client.close()
+    documents = []
+    for arg_collection in conf.infra['mongo']['collection']:
+        logger.info("Récupération des documents dans %s", arg_collection)
+        client = cmd_mongo.connect(conf)
+        collection = client[conf.infra['mongo']['db']][arg_collection]
+        documents += cmd_mongo.get_all_documents(collection,
+                                                 d_filter={'langue': conf.args['langue']},
+                                                 include=['_id', 'message'])
+        client.close()
+
     return documents
 
 

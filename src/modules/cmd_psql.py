@@ -182,6 +182,10 @@ def get_unique_data(client_psql, table, champ, clause):
     if not data:
         return None
 
+    if data == -1:
+        logger.warning("Echec de récupération du champ %s - %s", champ, clause)
+        return None
+
     if len(data) > 1:
         logger.warning("Plusieurs lignes sont disponible '%s' - affiner la clause '%s'",
                        champ, clause)

@@ -7,7 +7,6 @@ import hashlib
 import json
 import logging
 import multiprocessing
-import sys
 
 import langdetect
 import tqdm
@@ -66,7 +65,7 @@ def main(conf):
     client = cmd_mongo.connect(conf)
     db = client[conf.infra['mongo']['db']]
     collection = db[conf.infra['mongo']['collection']]
-    result = cmd_mongo.get_all_documents(collection, ['categorie', 'message'])
+    result = cmd_mongo.get_all_documents(collection, include=['categorie', 'message'])
     if conf.args['stats']:
         word_count.fouille_wc(result, conf, 'mise_en_base')
         get_stats(conf)
@@ -108,7 +107,7 @@ def fouille_doc(pool_args):
         return None
 
     try:
-        lang = langdetect.detect(body)
+        lang = langdetect.detect(body).split()[0]
     except langdetect.lang_detect_exception.LangDetectException as err:
         logger.error("Echec de détection de la langue pour %s %s", file, err)
         return None
