@@ -38,6 +38,10 @@
                 "type": ["VARCHAR"]
               },
               {
+                "name": "langue",
+                "type": ["VARCHAR", "NOT NULL"]
+              },
+              {
                 "name": "label",
                 "type": ["VARCHAR", "UNIQUE", "NOT NULL"]
               }

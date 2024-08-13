@@ -122,7 +122,7 @@ def args_handler():
                                  nargs=1,
                                  choices=['tfidf'])
 
-    parser_vecteurs.add_argument('-l', '--limit',
+    parser_vecteurs.add_argument('-t', '--limit',
                                  help="limiter le nombre mot utilisés dans la base vectorielle",
                                  type=int,
                                  default=200)
@@ -137,6 +137,11 @@ def args_handler():
                                  action='store_true',
                                  default=False)
 
+    parser_vecteurs.add_argument('-l', '--langue',
+                                 help='Sélection de la langue de traitement',
+                                 nargs=1,
+                                 default='en',
+                                 choices=['en', 'fr'])
     parser_train = subparsers.add_parser('train',
                                          help='Entrainement des modèles')
     models = {

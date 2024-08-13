@@ -89,7 +89,6 @@ class Settings:
                 'queries': conf.get('psql', 'queries'),
                 'vecteurs': {
                     'tfidf': {
-                        'requetes': conf.get('psql', 'tfidf_sql'),
                         "data": conf.get('psql', 'tfidf_data_sql')
                     }
                 }
@@ -98,7 +97,6 @@ class Settings:
                 'host': conf.get('mongo', 'host'),
                 'port': conf.get('mongo', 'port'),
                 'db': conf.get('mongo', 'db'),
-                'collection': conf.get('mongo', 'collection'), # todo: remove
                 'user_name': conf.get('mongo', 'user'),
                 'user_pwd': conf.get('mongo', 'password')
             },
@@ -149,6 +147,7 @@ class Settings:
                 self.args['method'] = arguments.method
                 self.args['limit'] = arguments.limit
                 self.args['init'] = arguments.init
+                self.args['langue'] = arguments.langue[0]
 
                 psql_cont = conf.get('infra', 'psql_container')
                 if not cmd_docker.container_up(psql_cont):

@@ -3,6 +3,7 @@
 Code pour la phase de recherche de vectorisation
 """
 import datetime
+import json
 import math
 import logging
 import sys
@@ -49,12 +50,17 @@ def tfidf_init_base(conf):
 
     cmd_psql.apply_databases_updates(conf, conf.infra['psql']['schema']['tfidf'])
     set_mots = tfidf_search_word(client, conf)
-
+    langue = conf.args['langue']
     mots_labels = []
     for mot in set_mots:
-        id_mot = cmd_psql.get_unique_data(client, 'nlp_mots_corpus', 'id_mot', f"mot LIKE '{mot}'")
+        id_mot = cmd_psql.get_unique_data(client,
+                                          'nlp_mots_corpus',
+                                          'id_mot',
+                                          f"mot LIKE '{mot}' AND langue LIKE '{langue}'")
         label = f"m_{id_mot}"
-        mots_labels.append({'id_mot': id_mot, 'vecteur_algo': 'tfidf', 'label': label})
+        mots_labels.append({'id_mot': id_mot, 'vecteur_algo': 'tfidf', 'label': label,
+                            'langue': langue})
+
     cmd_psql.insert_data_many(client, 'vect_mots_labels', mots_labels)
 
     client.close()
@@ -67,18 +73,15 @@ def tfidf_search_word(client, conf):
     :param conf: <Settings>
     :return: <set>
     """
-    with open(conf.infra['psql']['vecteurs']['tfidf']['requetes'], 'r', encoding='utf-8') as file:
-        sql_reqs = file.read()
+    with open(conf.infra['psql']['queries'], 'r', encoding='utf-8') as file:
+        sql_reqs = json.load(file)
 
     set_mots = set()
-    for query in sql_reqs.split(';'):
-        if not query:
-            continue
-        if query.startswith('\n'):
-            query = query[1:]
+    for query in sql_reqs['tfidf']:
         if conf.args['limit']:
             query = f"{query} LIMIT {conf.args['limit']}"
 
+        query = query.format(langue=conf.args['langue'])
         for ligne in cmd_psql.exec_query(client, query):
             set_mots.add(ligne[0])
 
@@ -103,15 +106,22 @@ def tfidf_vect_full(conf):
                                  host=conf.infra['psql']['host'],
                                  port=conf.infra['psql']['port'],
                                  dbname=conf.infra['psql']['db'])
-    query = "SELECT COUNT(*) FROM controle WHERE nlp_status LIKE 'OK'"
+    query = (f"SELECT COUNT(*) FROM controle co "
+             f"JOIN messages me ON co.id_message = me.id_message "
+             f"WHERE co.nlp_status LIKE 'OK' "
+             f"AND me.langue LIKE '{conf.args['langue']}'")
     total_docs = cmd_psql.exec_query(client, query)[0][0]
 
-    ctrl_doc = cmd_psql.get_data(client, 'controle', ['id_message'], 'vect_tfidf IS NULL')
-    if ctrl_doc == -1:
+    query = (f"SELECT co.id_message FROM controle co "
+             f"JOIN messages me ON co.id_message = me.id_message "
+             f"WHERE co.vect_tfidf IS NULL "
+             f"AND me.langue LIKE '{conf.args['langue']}'")
+    ctrl_docs = cmd_psql.exec_query(client, query)
+    if ctrl_docs == -1:
         logger.error("Echec de recherche des documents à traité")
         return
 
-    to_process = [entry['id_message'] for entry in ctrl_doc]
+    to_process = [entry[0] for entry in ctrl_docs]
     client.close()
 
     logger.info("Vectorisation TFIDF %s documents à traiter", len(to_process))
@@ -210,6 +220,7 @@ def tfidf_store_vecteurs(conf, result):
         cmd_psql.update(client, 'controle', entry['controle'], f"id_message = {id_message}")
 
     client.close()
+
 
 def tfidf_graph(conf):
     """

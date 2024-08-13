@@ -4,5 +4,17 @@
     "SELECT ca.nom categorie, COUNT(co.id_message) documents FROM controle co JOIN messages me ON co.id_message = me.id_message JOIN categories ca ON me.id_categorie = ca.id_categorie WHERE co.nlp_status LIKE 'OK' AND me.langue LIKE '{langue}' GROUP BY categorie;",
     "SELECT COUNT(id_mot) corpus_mots_uniques, SUM(freq_corpus) corpus_mots FROM nlp_mots_corpus WHERE langue LIKE '{langue}';",
     "SELECT ca.nom categorie, COUNT(DISTINCT(nd.id_mot)) mots_uniques, SUM(nd.occurrence) mots FROM nlp_mots_documents nd JOIN messages me ON nd.id_message = me.id_message JOIN categories ca ON me.id_categorie = ca.id_categorie WHERE me.langue LIKE '{langue}' GROUP BY categorie;"
+  ],
+  "tfidf": [
+    "SELECT mot FROM nlp_mots_corpus WHERE langue LIKE '{langue}' ORDER by freq_corpus DESC",
+    "SELECT mot FROM nlp_mots_corpus WHERE langue LIKE '{langue}' ORDER by freq_spam DESC",
+    "SELECT mot FROM nlp_mots_corpus WHERE langue LIKE '{langue}' ORDER by freq_ham DESC",
+    "SELECT mot FROM nlp_mots_corpus WHERE langue LIKE '{langue}' ORDER by freq_documents DESC",
+    "SELECT mot FROM nlp_mots_corpus WHERE langue LIKE '{langue}' ORDER by freq_ham, freq_spam DESC",
+    "SELECT mot FROM nlp_mots_corpus WHERE langue LIKE '{langue}' ORDER by freq_spam, freq_ham DESC",
+    "SELECT mot FROM nlp_mots_corpus WHERE freq_ham >= 2*freq_spam AND langue LIKE '{langue}' ORDER BY freq_ham DESC",
+    "SELECT mot FROM nlp_mots_corpus WHERE freq_spam >= 2*freq_ham AND langue LIKE '{langue}' ORDER BY freq_spam DESC",
+    "SELECT mot, freq_ham/freq_spam as ratio_ham_spam FROM nlp_mots_corpus WHERE freq_ham > 0 AND freq_spam > 0 AND langue LIKE '{langue}' ORDER BY ratio_ham_spam DESC",
+    "SELECT mot, freq_spam/freq_ham as ratio_spam_ham FROM nlp_mots_corpus WHERE freq_ham > 0 AND freq_spam > 0 AND langue LIKE '{langue}' ORDER BY ratio_spam_ham DESC"
   ]
 }
