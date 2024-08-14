@@ -17,3 +17,4 @@ lxml
 pylint
 pymongo
 PyQt5
+joblib

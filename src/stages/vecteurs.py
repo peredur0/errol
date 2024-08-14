@@ -233,14 +233,14 @@ def tfidf_graph(conf):
                                     port=conf.infra['psql']['port'],
                                     dbname=conf.infra['psql']['db'])
 
-    with open(conf.infra['psql']['vecteurs']['tfidf']['data'], 'r', encoding='utf-8') as file:
-        sql_reqs = file.read()
+    with open(conf.infra['psql']['queries'], 'r', encoding='utf-8') as file:
+        sql_reqs = json.load(file)
 
-    queries = sql_reqs.split(';')
-    df_1 = pd.read_sql_query(queries[0], client)
+    queries = sql_reqs["tfidf_data"]
+    df_1 = pd.read_sql_query(queries[0].format(langue=conf.args['langue']), client)
     df_1 = df_1.drop(['document'], axis=1)
 
-    df_2 = pd.read_sql_query(queries[1], client)
+    df_2 = pd.read_sql_query(queries[1].format(langue=conf.args['langue']), client)
     df_2 = df_2.drop(['label'], axis=1)
     graph.vecteurs_dash(df_1, df_2, conf)
 

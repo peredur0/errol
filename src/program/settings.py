@@ -86,19 +86,15 @@ class Settings:
                     'nlp': conf.get('psql', 'schema_nlp'),
                     'tfidf': conf.get('psql', 'schema_tfidf')
                 },
-                'queries': conf.get('psql', 'queries'),
-                'vecteurs': {
-                    'tfidf': {
-                        "data": conf.get('psql', 'tfidf_data_sql')
-                    }
-                }
+                'queries': conf.get('psql', 'queries')
             },
             'mongo': {
                 'host': conf.get('mongo', 'host'),
                 'port': conf.get('mongo', 'port'),
                 'db': conf.get('mongo', 'db'),
                 'user_name': conf.get('mongo', 'user'),
-                'user_pwd': conf.get('mongo', 'password')
+                'user_pwd': conf.get('mongo', 'password'),
+                'models': conf.get('mongo', 'collection_models')
             },
             'sqlite': {
                 'file': conf.get('sqlite', 'file'),
@@ -149,10 +145,10 @@ class Settings:
                 self.args['init'] = arguments.init
                 self.args['langue'] = arguments.langue[0]
 
-                psql_cont = conf.get('infra', 'psql_container')
-                if not cmd_docker.container_up(psql_cont):
-                    logger.error('Docker conteneur %s non disponible', psql_cont)
-                    sys.exit(1)
+                for cont in self.infra['containers']:
+                    if not cmd_docker.container_up(cont):
+                        logger.error('Docker conteneur %s non disponible', cont)
+                        sys.exit(1)
 
             case "train":
                 psql_cont = conf.get('infra', 'psql_container')
@@ -160,6 +156,7 @@ class Settings:
                     logger.error('Docker conteneur %s non disponible', psql_cont)
                     sys.exit(1)
                 self.args['models'] = arguments.models
+                self.args['langue'] = arguments.langue[0]
                 self.infra['storage'] = conf.get('infra', 'model_store')
                 os.makedirs(self.infra['storage'], exist_ok=True)
 

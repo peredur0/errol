@@ -16,5 +16,12 @@
     "SELECT mot FROM nlp_mots_corpus WHERE freq_spam >= 2*freq_ham AND langue LIKE '{langue}' ORDER BY freq_spam DESC",
     "SELECT mot, freq_ham/freq_spam as ratio_ham_spam FROM nlp_mots_corpus WHERE freq_ham > 0 AND freq_spam > 0 AND langue LIKE '{langue}' ORDER BY ratio_ham_spam DESC",
     "SELECT mot, freq_spam/freq_ham as ratio_spam_ham FROM nlp_mots_corpus WHERE freq_ham > 0 AND freq_spam > 0 AND langue LIKE '{langue}' ORDER BY ratio_spam_ham DESC"
-  ]
+  ],
+  "tfidf_data": [
+    "SELECT sq.document, ca.nom categorie, sq.dimensions, sq.somme FROM (SELECT vm.id_message document, COUNT(label) dimensions, SUM(value) somme FROM vect_messages vm JOIN messages me ON vm.id_message = me.id_message WHERE vecteur_algo LIKE 'tfidf' AND me.langue LIKE '{langue}' GROUP BY document) as sq JOIN messages me ON me.id_message = sq.document JOIN categories ca ON me.id_categorie = ca.id_categorie",
+    "SELECT vml.label, nmc.freq_corpus, nmc.freq_ham, nmc.freq_spam FROM vect_mots_labels vml JOIN nlp_mots_corpus nmc ON vml.id_mot = nmc.id_mot WHERE vml.vecteur_algo LIKE 'tfidf' AND vml.langue LIKE '{langue}'"
+  ],
+  "train_tfidf_vecteur": "SELECT vm.id_message, vm.label, vm.value FROM vect_messages vm JOIN controle co ON vm.id_message = co.id_message JOIN messages me ON vm.id_message = me.id_message WHERE vm.vecteur_algo LIKE 'tfidf' AND me.langue LIKE '{langue}' AND co.vect_tfidf_status LIKE 'OK';",
+  "train_features": "SELECT co.id_message, li.nombre, li.url, fh.nombre_hapax hapax, fh.ratio_mots_uniques hapax_uniques, fm.char_majuscules majuscules, fp.espace FROM controle co JOIN liens li ON co.id_message = li.id_message JOIN features_hapax fh ON co.id_message = fh.id_message JOIN features_mots fm ON co.id_message = fm.id_message JOIN features_ponctuations fp ON co.id_message = fp.id_message JOIN messages me ON co.id_message = me.id_message WHERE co.vect_tfidf_status LIKE 'OK' AND me.langue LIKE '{langue}';",
+  "train_categories": "SELECT co.id_message, me.id_categorie cat, ca.nom categorie FROM controle co JOIN messages me ON me.id_message = co.id_message JOIN categories ca ON me.id_categorie = ca.id_categorie WHERE co.vect_tfidf_status LIKE 'OK' AND me.langue = '{langue}';"
 }

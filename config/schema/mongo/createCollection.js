@@ -83,6 +83,10 @@ db.createCollection("trained_models", {
                 colonnes: {
                     bsonType: "array",
                     description: "colonnes utilisées pour le modèle"
+                },
+                evaluations: {
+                    bsonType: "object",
+                    description: "Résultat des évaluations du modèle"
                 }
             }
         }

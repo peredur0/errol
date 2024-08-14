@@ -142,8 +142,16 @@ def args_handler():
                                  nargs=1,
                                  default='en',
                                  choices=['en', 'fr'])
+
     parser_train = subparsers.add_parser('train',
                                          help='Entrainement des modèles')
+
+    parser_train.add_argument('-l', '--langue',
+                               help='Sélection de la langue de traitement',
+                               nargs=1,
+                               default='en',
+                               choices=['en', 'fr'])
+
     models = {
         'rtf': 'Random Tree Forest',
         'svm': 'Support Vector Machine'
