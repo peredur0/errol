@@ -166,6 +166,7 @@ class Settings:
                     logger.error('Docker conteneur %s non disponible', psql_cont)
                     sys.exit(1)
                 self.args['models'] = arguments.models
+                self.args['mail'] = arguments.mail[0]
                 self.infra['storage'] = conf.get('infra', 'model_store')
 
             case _:

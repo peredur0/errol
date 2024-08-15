@@ -23,5 +23,7 @@
   ],
   "train_tfidf_vecteur": "SELECT vm.id_message, vm.label, vm.value FROM vect_messages vm JOIN controle co ON vm.id_message = co.id_message JOIN messages me ON vm.id_message = me.id_message WHERE vm.vecteur_algo LIKE 'tfidf' AND me.langue LIKE '{langue}' AND co.vect_tfidf_status LIKE 'OK';",
   "train_features": "SELECT co.id_message, li.nombre, li.url, fh.nombre_hapax hapax, fh.ratio_mots_uniques hapax_uniques, fm.char_majuscules majuscules, fp.espace FROM controle co JOIN liens li ON co.id_message = li.id_message JOIN features_hapax fh ON co.id_message = fh.id_message JOIN features_mots fm ON co.id_message = fm.id_message JOIN features_ponctuations fp ON co.id_message = fp.id_message JOIN messages me ON co.id_message = me.id_message WHERE co.vect_tfidf_status LIKE 'OK' AND me.langue LIKE '{langue}';",
-  "train_categories": "SELECT co.id_message, me.id_categorie cat, ca.nom categorie FROM controle co JOIN messages me ON me.id_message = co.id_message JOIN categories ca ON me.id_categorie = ca.id_categorie WHERE co.vect_tfidf_status LIKE 'OK' AND me.langue = '{langue}';"
+  "train_categories": "SELECT co.id_message, me.id_categorie cat, ca.nom categorie FROM controle co JOIN messages me ON me.id_message = co.id_message JOIN categories ca ON me.id_categorie = ca.id_categorie WHERE co.vect_tfidf_status LIKE 'OK' AND me.langue = '{langue}';",
+  "check_nb_docs": "SELECT COUNT(*) FROM messages WHERE langue LIKE '{langue}'",
+  "check_label": "SELECT vml.label, nmc.freq_documents FROM vect_mots_labels vml JOIN nlp_mots_corpus nmc ON vml.id_mot = nmc.id_mot WHERE nmc.mot LIKE '{mot}' AND vml.vecteur_algo LIKE '{algo}' and vml.langue LIKE '{langue}'"
 }

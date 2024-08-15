@@ -165,6 +165,12 @@ def args_handler():
 
     parser_check = subparsers.add_parser('check',
                                          help="Vérification d'un message")
+
+    parser_check.add_argument('mail',
+                              help="Chemin vers le message à analyser",
+                              nargs=1,
+                              type=str)
+
     models_dir = './models'
     trained_models = [m.split('.')[0] for m in os.listdir(models_dir)]
     parser_check.add_argument('-m', '--models',
