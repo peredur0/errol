@@ -87,6 +87,14 @@ db.createCollection("trained_models", {
                 evaluations: {
                     bsonType: "object",
                     description: "Résultat des évaluations du modèle"
+                },
+                scaler: {
+                    bsonType: "string",
+                    description: "Méthode de normalisation"
+                },
+                ham_id: {
+                    bsonType: "int",
+                    description: "Identifiant de catégorie pour les ham"
                 }
             }
         }

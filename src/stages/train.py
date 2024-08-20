@@ -39,7 +39,6 @@ def main(conf):
                 full_df.shape[1])
 
     logger.debug("Préparation des données")
-    normalize(full_df, preprocessing.StandardScaler(), exclude=['id_message', 'cat', 'categorie'])
 
     cat_df = full_df['cat']
     vect_feat = full_df.copy()
@@ -57,27 +56,30 @@ def main(conf):
     id_ham = get_ham_id(conf)
     logger.info("ID pour les ham - %i", id_ham)
 
+    scaler = None
     results = {}
     for model in conf.args['models']:
         if model == 'rtf':
             logger.info("RandomTree Forest avec les vecteurs tfidf et caractéristiques")
-            results['rtf_vect_feat'] = create_random_forest(conf, datasets['vect_feat'], id_ham)
+            results['rtf_vect_feat'] = create_random_forest(conf, datasets['vect_feat'], id_ham,
+                                                            scaler)
             logger.info("RandomTree Forest avec les vecteurs tfidf seulement")
-            results['rtf_vect_only'] = create_random_forest(conf, datasets['vect_only'], id_ham)
+            results['rtf_vect_only'] = create_random_forest(conf, datasets['vect_only'], id_ham,
+                                                            scaler)
             continue
 
         if model == 'svm':
             logger.info("Support Vector Machine avec les vecteurs tfidf et caractéristiques")
-            results['svm_vect_feat'] = create_svm(conf,datasets['vect_feat'], id_ham)
+            results['svm_vect_feat'] = create_svm(conf,datasets['vect_feat'], id_ham, scaler)
             logger.info("Support Vector Machine avec les vecteurs tfidf seulement")
-            results['svm_vect_only'] = create_svm(conf, datasets['vect_only'], id_ham)
+            results['svm_vect_only'] = create_svm(conf, datasets['vect_only'], id_ham, scaler)
             continue
 
     for key, values in results.items():
         logger.info("%s - Precision: %.3f - Recall: %.3f - Accuracy: %.3f - Fscore: %.3f",
                     key, values['precision'], values['recall'], values['accuracy'],
                     values['fscore'])
-        save_model(conf, key, values)
+        save_model(conf, key, values, type(scaler).__name__, id_ham)
 
 
 def get_tfidf_vecteur(conf):
@@ -160,15 +162,20 @@ def get_categories(conf):
     return vecteurs
 
 
-def create_random_forest(conf, datasets, pos_label):
+def create_random_forest(conf, datasets, pos_label, normalizer=None):
     """
     Créer un modèle IA via une random tree forest
     :param conf: <Settings>
     :param datasets: <list>
     :param pos_label: <int>
+    :param normalizer: <Scaler>
     :return: <dict>
     """
     x_train, x_test, y_train, y_test = datasets
+    if normalizer is not None:
+        normalize(x_train, normalizer)
+        normalize(x_test, normalizer)
+
     alg_decision_tree = RandomForestClassifier(n_estimators=100, max_depth=100,
                                                n_jobs=conf.infra['cpu_available'])
     model = alg_decision_tree.fit(x_train, y_train)
@@ -187,16 +194,21 @@ def create_random_forest(conf, datasets, pos_label):
     return results
 
 
-def create_svm(conf, datasets, pos_label):
+def create_svm(conf, datasets, pos_label, normalizer=None):
     """
     Créer un modèle IA via une random tree forest
     :param conf: <Settings>
     :param datasets: <list>
     :param pos_label: <int>
+    :param normalizer: <Scaler>
     :return: <dict>
     """
     result = {}
     x_train, x_test, y_train, y_test = datasets
+    if normalizer is not None:
+        normalize(x_train, normalizer)
+        normalize(x_test, normalizer)
+
     alg_svm = svm.SVC()
     svm_params = {'kernel': ['rbf'],
                   'gamma': [0.0001, 0.001, 0.005, 0.01, 1, 10],
@@ -253,12 +265,14 @@ def get_ham_id(conf):
     return id_ham
 
 
-def save_model(conf, name, values):
+def save_model(conf, name, values, scaler_name, ham_id):
     """
     Sauvegarde un modèle
     :param conf: <Settings>
     :param name: <str>
     :param values: <dict>
+    :param scaler_name: <Scaler>,
+    :param ham_id: <int>
     """
     chemin = f"{conf.infra['storage']}/{name}.pkl"
     joblib.dump(values['model'], chemin)
@@ -269,7 +283,9 @@ def save_model(conf, name, values):
         'langue': conf.args['langue'],
         'creation': datetime.datetime.now(),
         'colonnes': list(values.pop('colonnes')),
-        'evaluation': values
+        'evaluation': values,
+        'scaler': scaler_name,
+        'ham_id': ham_id
     }
     client = cmd_mongo.connect(conf)
     collection = client[conf.infra['mongo']['db']][conf.infra['mongo']['models']]

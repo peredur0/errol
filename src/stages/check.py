@@ -9,18 +9,26 @@ import nltk
 import logging
 import hashlib
 import langdetect
+import joblib
 
-from nltk.corpus import stopwords
 import stanza
+from nltk.corpus import stopwords
+from nltk.misc.chomsky import verbs
+from sklearn import preprocessing
+import pandas as pd
 
 from src.modules import importation
 from src.modules import nettoyage
 from src.modules import cmd_psql
+from src.modules import cmd_mongo
 from src.annexes import zipf
 from src.stages.features import features_ponctuations, features_mots, features_zipf, features_hapax
 from src.stages.nlp import lemmatise
+from src.stages.train import normalize
 
 logger = logging.getLogger(__name__)
+
+logging.getLogger('stanza').setLevel(logging.ERROR)
 
 
 def main(conf):
@@ -60,7 +68,7 @@ def main(conf):
         features.update(fonction(body))
 
     logger.info("Traitement NLP")
-    nltk.download("stopwords")
+    nltk.download("stopwords", quiet=True)
     match new_doc['langue']:
         case 'en':
             stopw = set(stopwords.words('english'))
@@ -101,7 +109,51 @@ def main(conf):
         return
 
     logger.info("Préparation des datasets")
+    data = vecteur
+    data.update(new_doc['liens'])
+    data.update(features)
 
-    # models = {name: f"{conf.infra['storage']}/{name}.pkl" for name in conf.args['models']}
+    for key in list(data.keys()):
+        if key == 'nombre_hapax':
+            data['hapax'] = data.pop(key)
+            continue
+        if key == 'ratio_mots_uniques':
+            data['hapax_uniques'] = data.pop(key)
+            continue
+        data[key.lower()] = data.pop(key)
 
+    base_df = pd.DataFrame(data, index=[0])
 
+    mgo_client = cmd_mongo.connect(conf)
+    m_collection = mgo_client[conf.infra['mongo']['db']][conf.infra['mongo']['models']]
+
+    logger.info("Evaluation")
+    scaler = None
+    models = {name: f"{conf.infra['storage']}/{name}.pkl" for name in conf.args['models']}
+    for model_name, path in models.items():
+        m_doc = list(m_collection.find({'name': model_name}))[0]
+        if path != m_doc['chemin']:
+            logger.error('Les chemins pour le modèle %s ne correspondent pas %s <> %s', model_name,
+                         path, m_doc['chemin'])
+            continue
+
+        if type(scaler).__name__ != m_doc['scaler']:
+            logger.error("La méthode de normalisation ne correspond pas %s <> %s",
+                         type(scaler).__name__, m_doc['scaler'])
+            continue
+
+        m_cols = m_doc['colonnes']
+        add_cols = {col: [0.0]*len(base_df) for col in m_cols if col not in base_df}
+        add_cols = pd.DataFrame(add_cols)
+        tmp_df = pd.concat([base_df, add_cols], axis=1)
+        tmp_df = tmp_df[m_cols]
+        if scaler is not None:
+            normalize(tmp_df, scaler)
+
+        model_bin = joblib.load(path)
+        prediction = model_bin.predict(tmp_df)[0]
+        ham_id = m_doc['ham_id']
+        logger.info("%s - %s > %s",
+                    conf.args['mail'], model_name, 'ham' if prediction == ham_id else 'spam')
+
+    mgo_client.close()
