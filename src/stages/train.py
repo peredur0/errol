@@ -8,7 +8,6 @@ import logging
 import joblib
 
 import pandas as pd
-from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import precision_recall_fscore_support as score
 from sklearn.model_selection import train_test_split, GridSearchCV

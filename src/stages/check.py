@@ -13,8 +13,6 @@ import joblib
 
 import stanza
 from nltk.corpus import stopwords
-from nltk.misc.chomsky import verbs
-from sklearn import preprocessing
 import pandas as pd
 
 from src.modules import importation
