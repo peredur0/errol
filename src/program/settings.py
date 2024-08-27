@@ -72,6 +72,7 @@ class Settings:
         }
 
         self.infra = {
+            'cpu_available': (multiprocessing.cpu_count()//2)+1,
             'containers': [conf.get('infra', 'psql_container'),
                            conf.get('infra', 'mongo_container')],
             'psql': {
@@ -100,9 +101,28 @@ class Settings:
                 'file': conf.get('sqlite', 'file'),
                 'schema_stats': conf.get('sqlite', 'schema_stats')
             },
-            'cpu_available': (multiprocessing.cpu_count()//2)+1
+            'jira': {
+                'user': conf.get('jira', 'user'),
+                'token': conf.get('jira', 'token'),
+                'endpoint': conf.get('jira', 'endpoint')
+            }
         }
 
+        self.rapport = {
+            'images': conf.get('rapport', 'images'),
+            'fouille': conf.get('rapport', 'fouille'),
+            'features': conf.get('rapport', 'features')
+        }
+
+        self.setup_stage(arguments, conf)
+        logger.info("Initialisation du programme pour la phase %s - OK", self.stage)
+
+    def setup_stage(self, arguments, conf):
+        """
+        Modifie les configurations selon l'étape
+        :param arguments: <argparse>
+        :param conf: <configparser>
+        """
         match self.stage:
             case 'develop':
                 self.args['graph'] = arguments.graph
@@ -172,13 +192,6 @@ class Settings:
             case _:
                 logger.error("Etape %s non reconnue", self.stage)
                 sys.exit(1)
-
-        self.rapport = {
-            'images': conf.get('rapport', 'images'),
-            'fouille': conf.get('rapport', 'fouille'),
-            'features': conf.get('rapport', 'features')
-        }
-        logger.info("Initialisation du programme pour la phase %s - OK", self.stage)
 
     def __repr__(self):
         return f"<Settings: {self.stage}>"
