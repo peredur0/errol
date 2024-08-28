@@ -104,7 +104,11 @@ class Settings:
             'jira': {
                 'user': conf.get('jira', 'user'),
                 'token': conf.get('jira', 'token'),
-                'endpoint': conf.get('jira', 'endpoint')
+                'project': 'Errol',
+                'api':
+                    {
+                        'search': conf.get('jira', 'api_search'),
+                    }
             }
         }
 
@@ -126,6 +130,7 @@ class Settings:
         match self.stage:
             case 'develop':
                 self.args['graph'] = arguments.graph
+                self.infra['mails'] = conf.get('infra', 'tmp_folder')
 
             case 'features':
                 self.args['graph'] = arguments.graph
