@@ -2,12 +2,12 @@
 """
 Fichier pour le développement
 """
+import os.path
+import sys
+import tempfile
 
 import logging
-import sys
-
 import requests
-
 from requests.auth import HTTPBasicAuth
 
 logger = logging.getLogger(__name__)
@@ -111,8 +111,27 @@ def mail_eval(ticket, conf):
         reply(conf, ticket['self'], comment, 'Cancel')
         return
 
-    logger.info('On continue')
-    reply(conf, ticket, 'test', 'Traité')
+    if not os.path.isdir(conf.infra['mails']):
+        os.makedirs(conf.infra['mails'])
+    tempfile.tempdir = conf.infra['mails']
+
+    logger.info('Téléchargement des mails de %s', ticket['key'])
+    for attached in ticket['attachment']:
+        print(attached['content_link'])
+        resp = requests.request('GET', attached['content_link'], timeout=30)
+        if resp.status_code == 200:
+            with tempfile.NamedTemporaryFile(prefix='errol_', suffix='.eml') as tmp_file:
+                tmp_file.write(resp.content)
+                attached['local_path'] = tmp_file.name
+                logger.info("%s - mail téléchargé - %s", ticket['key'], tmp_file.name)
+        else:
+            logger.error(" %s Echec de téléchargement du mail %s - %s %s",
+                         ticket['key'], attached['filename'],
+                         resp.status_code, resp.text)
+            attached['local_path'] = None
+            attached['reason'] = "Echec de téléchargement"
+
+    # reply(conf, ticket, 'test', 'Traité')
 
 
 def reply(conf, ticket, comment, transition=None):

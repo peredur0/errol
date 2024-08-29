@@ -9,6 +9,7 @@
 
 project_database/
 project_data/
+tmp/
 .venv/
 src/__pycache__/
 src/modules/__pycache__/
