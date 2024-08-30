@@ -288,7 +288,7 @@ def save_model(conf, name, values, scaler_name, ham_id):
     }
     client = cmd_mongo.connect(conf)
     collection = client[conf.infra['mongo']['db']][conf.infra['mongo']['models']]
-    collection.delete_many({'name': name})
+    collection.delete_many({'name': name, 'langue': conf.args['langue']})
     collection.insert_one(document)
     client.close()
     joblib.dump(model, chemin)

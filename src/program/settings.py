@@ -85,7 +85,8 @@ class Settings:
                     'fouille': conf.get('psql', 'schema_fouille'),
                     'features': conf.get('psql', 'schema_features'),
                     'nlp': conf.get('psql', 'schema_nlp'),
-                    'tfidf': conf.get('psql', 'schema_tfidf')
+                    'tfidf': conf.get('psql', 'schema_tfidf'),
+                    'kaamelott': conf.get('psql', 'schema_kaamelott')
                 },
                 'queries': conf.get('psql', 'queries')
             },

@@ -1,0 +1,89 @@
+{
+  "databases": [
+    {
+      "name": "errol",
+      "tables": {
+        "delete": [],
+        "update": [],
+        "new": [
+          {
+            "name": "kaamelott_messages",
+            "fields": [
+              {
+                "name": "id_message",
+                "type": ["SERIAL", "PRIMARY KEY"]
+              },
+              {
+                "name": "hash",
+                "type": ["CHAR(32)", "UNIQUE", "NOT NULL"]
+              }
+            ]
+          },
+          {
+            "name": "kaamelott_users",
+            "fields": [
+              {
+                "name": "id_user",
+                "type": ["SERIAL", "PRIMARY KEY"]
+              },
+              {
+                "name": "email",
+                "type": ["VARCHAR", "NOT NULL", "UNIQUE"]
+              }
+            ]
+          },
+          {
+            "name": "kaamelott_mail_eval",
+            "fields": [
+              {
+                "name": "id_message",
+                "type": ["INT", "NOT NULL"]
+              },
+              {
+                "name": "model_name",
+                "type": ["VARCHAR", "NOT NULL"]
+              },
+              {
+                "name": "langue",
+                "type": ["VARCHAR(5)", "NOT NULL"]
+              },
+              {
+                "name": "eval_timestamp",
+                "type": ["TIMESTAMP", "NOT NULL"]
+              },
+              {
+                "name": "result",
+                "type": ["VARCHAR", "NOT NULL"]
+              }
+            ]
+          },
+          {
+            "name": "kaamelott_mail_store",
+            "fields": [
+              {
+                "name": "jira_key",
+                "type": ["VARCHAR", "NOT NULL"]
+              },
+              {
+                "name": "id_message",
+                "type": ["INT", "NOT NULL"]
+              },
+              {
+                "name": "id_user",
+                "type": ["INT", "NOT NULL"]
+              }
+            ],
+            "foreign_keys": [
+              {
+                "name": "fk_user",
+                "field": "id_user",
+                "reference": "kaamelott_users(id_user)",
+                "on_delete": "CASCADE"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -10,6 +10,8 @@ import logging
 import requests
 from requests.auth import HTTPBasicAuth
 
+from src.modules import cmd_psql
+
 logger = logging.getLogger(__name__)
 
 
@@ -18,6 +20,9 @@ def main(conf):
     Fonction principale
     """
     logger.info("DEVELOPPEMENT")
+
+    logger.info("Mise à jour de la base psql")
+    cmd_psql.apply_databases_updates(conf, conf.infra['psql']['schema']['kaamelott'])
 
     header = {'Accept': 'application/json'}
     auth = HTTPBasicAuth(conf.infra['jira']['user'], conf.infra['jira']['token'])
@@ -43,7 +48,7 @@ def main(conf):
     for ticket in to_process:
         match ticket['ticket_type']:
             case 'Evaluate':
-                mail_eval(ticket, conf)
+                eval_ticket(ticket, conf)
 
             case _:
                 logger.warning('Type de ticket inconnu - %s', ticket['ticket_type'])
@@ -91,14 +96,16 @@ def get_issue_data(conf, issue):
     return extracted_data
 
 
-def mail_eval(ticket, conf):
+def eval_ticket(ticket, conf):
     """
     Process pour le traitement des demandes d'évaluation.
     :param ticket: <dict>
     :param conf: <Settings>
     :return: <None>
     """
-    logger.info('Evaluation des mails du ticket %s', ticket['key'])
+    header = {'Accept': 'application/json'}
+    auth = HTTPBasicAuth(conf.infra['jira']['user'], conf.infra['jira']['token'])
+    logger.info('Début du traitement du ticket evaluation - %s', ticket['key'])
 
     if not ticket['attachment']:
         logger.info("Ticket sans attachement valide - %s")
@@ -115,23 +122,37 @@ def mail_eval(ticket, conf):
         os.makedirs(conf.infra['mails'])
     tempfile.tempdir = conf.infra['mails']
 
-    logger.info('Téléchargement des mails de %s', ticket['key'])
+    logger.debug('Téléchargement des mails de %s', ticket['key'])
     for attached in ticket['attachment']:
-        print(attached['content_link'])
-        resp = requests.request('GET', attached['content_link'], timeout=30)
-        if resp.status_code == 200:
-            with tempfile.NamedTemporaryFile(prefix='errol_', suffix='.eml') as tmp_file:
-                tmp_file.write(resp.content)
-                attached['local_path'] = tmp_file.name
-                logger.info("%s - mail téléchargé - %s", ticket['key'], tmp_file.name)
-        else:
+        logger.info('%s Traitement - %s', ticket['key'], attached['filename'])
+        resp = requests.request('GET', attached['content_link'], auth=auth, headers=header,
+                                timeout=30)
+
+        if resp.status_code != 200:
             logger.error(" %s Echec de téléchargement du mail %s - %s %s",
                          ticket['key'], attached['filename'],
                          resp.status_code, resp.text)
-            attached['local_path'] = None
-            attached['reason'] = "Echec de téléchargement"
+            attached['success'] = False
+            attached['result'] = "Echec de téléchargement"
+            continue
 
-    # reply(conf, ticket, 'test', 'Traité')
+        with tempfile.NamedTemporaryFile(prefix='errol_', suffix='.eml') as tmp_file:
+            tmp_file.write(resp.content)
+            logger.debug("%s mail téléchargé - %s", ticket['key'],
+                         os.path.split(tmp_file.name)[-1])
+
+        mail_eval(conf, ticket, tmp_file.name)
+
+
+def mail_eval(conf, ticket, tmp_file):
+    """
+    Evalue un mail avec les modèles disponibles.
+    :param conf: <Settings>
+    :param ticket: <dict>
+    :param tmp_file: <str>
+    """
+    logger.info('Traitement de')
+
 
 
 def reply(conf, ticket, comment, transition=None):
