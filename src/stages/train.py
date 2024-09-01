@@ -280,7 +280,7 @@ def save_model(conf, name, values, scaler_name, ham_id):
         'name': name,
         'chemin': chemin,
         'langue': conf.args['langue'],
-        'creation': datetime.datetime.now(),
+        'creation': datetime.datetime.utcnow(),
         'colonnes': list(values.pop('colonnes')),
         'evaluation': values,
         'scaler': scaler_name,

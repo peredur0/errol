@@ -10,6 +10,8 @@ import os.path
 import logging
 import tempfile
 import json
+import datetime
+
 import joblib
 import requests
 import langdetect
@@ -68,6 +70,8 @@ def main(conf):
             case 'Evaluate':
                 eval_ticket(ticket, conf)
                 post_report(conf, ticket)
+                save_results(conf, ticket)
+                save_mail(conf, ticket)
 
             case _:
                 logger.warning('Type de ticket inconnu - %s', ticket['ticket_type'])
@@ -160,24 +164,27 @@ def eval_ticket(ticket, conf):
             logger.debug("%s mail téléchargé - %s", ticket['key'],
                          os.path.split(tmp_file.name)[-1])
             attached['tmp_path'] = tmp_file.name
-            attachment_eval(conf, ticket['key'], attached)
+            attachment_eval(conf, ticket, attached)
 
-def attachment_eval(conf, ticket_key, attached):
+def attachment_eval(conf, ticket, attached):
     """
     Evaluer un mail avec les modèles disponibles.
     :param conf: <Settings>
-    :param ticket_key: <dict>
+    :param ticket: <dict>
     :param attached: <str>
     :return: <None>
     """
-    document = pre_traitement(ticket_key, attached)
+    document = pre_traitement(ticket['key'], attached)
+    if ticket['storage_auth'] == 'Autoriser':
+        attached['document'] = document
+
     client = cmd_mongo.connect(conf)
     collection = client[conf.infra['mongo']['db']][conf.infra['mongo']['models']]
     models = cmd_mongo.get_all_documents(collection, d_filter={'langue': document['langue']})
     client.close()
 
     if not models:
-        logger.warning('%s - Pas de modèles IA disponible pour %s', ticket_key,
+        logger.warning('%s - Pas de modèles IA disponible pour %s', ticket['key'],
                        attached['filename'])
         attached['success'] = False
         attached['result'] = (f"{document['hash']} - Aucun modèle n'est disponible pour la langue "
@@ -222,6 +229,7 @@ def pre_traitement(ticket_key, attached):
 
     try:
         lang = langdetect.detect(body).split()[0]
+        attached['langue'] = lang
     except langdetect.lang_detect_exception.LangDetectException as err:
         logger.error("Echec de détection de la langue pour %s %s", attached['filename'], err)
         attached['success'] = False
@@ -380,7 +388,7 @@ def nlp_process(document, attached):
     :param attached: <dict>
     :return: <dict>
     """
-    logger.info("%s -Traitement du langage naturel", attached['filename'])
+    logger.info("%s - Traitement du langage naturel", attached['filename'])
     match document['langue']:
         case 'en':
             stopw = set(stopwords.words('english'))
@@ -501,3 +509,125 @@ def post_report(conf, ticket):
                 "Pensez à vérifier le résultat de ces analyses - Les modèles peuvent se tromper.\n")
 
     post_reply(conf, ticket, comment, 'Traité')
+
+
+def save_results(conf, ticket):
+    """
+    Sauvegarde les informations
+    :param conf: <Settings>
+    :param ticket: <dict>
+    :return: <None>
+    """
+    client = cmd_psql.connect_db(user=conf.infra['psql']['user'],
+                                 passwd=conf.infra['psql']['pass'],
+                                 host=conf.infra['psql']['host'],
+                                 port=conf.infra['psql']['port'],
+                                 dbname=conf.infra['psql']['db'])
+
+    now = datetime.datetime.utcnow()
+    for attached in ticket['attachment']:
+        if not attached['success']:
+            continue
+
+        table = 'kaamelott_messages'
+        id_message = cmd_psql.get_unique_data(client, table, 'id_message',
+                                              f"hash LIKE '{attached['hash']}'")
+        if not id_message:
+            cmd_psql.insert_data_one(client, table, {'hash': attached['hash']})
+            id_message = cmd_psql.get_unique_data(client, table, 'id_message',
+                                                  f"hash LIKE '{attached['hash']}'")
+
+        table = 'kaamelott_mail_eval'
+        for model, prediction in attached['result'].items():
+            id_eval = cmd_psql.get_unique_data(client, table, 'id_eval',
+                                               f"id_message = {id_message} "
+                                               f"AND model_name LIKE '{model}' "
+                                               f"AND langue LIKE '{attached['langue']}'")
+            if id_eval:
+                data = {
+                    "eval_timestamp": now.isoformat(),
+                    "result": prediction
+                }
+                cmd_psql.update(client, table, data, clause=f"id_eval = {id_eval}")
+                logger.info("%s %s Résultat mis à jour", attached['filename'], model)
+                continue
+
+            data = {
+                "id_message": id_message,
+                "model_name": model,
+                "langue": attached['langue'],
+                "eval_timestamp": now.isoformat(),
+                "result": prediction
+            }
+            cmd_psql.insert_data_one(client, table, data)
+            logger.info("%s %s Résultat mis en base", attached['filename'], model)
+
+    client.close()
+
+def save_mail(conf, ticket):
+    """
+    Sauvegarde le mail dans la base mongo.
+    Selon autorisation
+    :param conf: <Settings>
+    :param ticket: <dict>
+    :return: <None>
+    """
+    p_client = cmd_psql.connect_db(user=conf.infra['psql']['user'],
+                                 passwd=conf.infra['psql']['pass'],
+                                 host=conf.infra['psql']['host'],
+                                 port=conf.infra['psql']['port'],
+                                 dbname=conf.infra['psql']['db'])
+
+    m_client = cmd_mongo.connect(conf)
+    collection = m_client[conf.infra['mongo']['db']]['kaamelott']
+
+    categorie = 'Inconnu'
+    if ticket['ticket_type'] == 'Evaluate':
+        if ticket['storage_auth'] != 'Autoriser':
+            return
+        categorie = 'Inconnu'
+
+    table = "kaamelott_users"
+    id_user = cmd_psql.get_unique_data(p_client, table, 'id_user',
+                                       f"email LIKE '{ticket['reporter']}'")
+    if not id_user:
+        cmd_psql.insert_data_one(p_client, table, {'email': ticket['reporter']})
+        id_user = cmd_psql.get_unique_data(p_client, table, 'id_user',
+                                           f"email LIKE '{ticket['reporter']}'")
+        logger.info('Nouvel utilisateur créé dans la base PSQL')
+
+    for attached in ticket['attachment']:
+        if 'document' not in attached:
+            continue
+
+        table = 'kaamelott_messages'
+        id_message = cmd_psql.get_unique_data(p_client, table, 'id_message',
+                                              f"hash LIKE '{attached['document']['hash']}'")
+        if not id_message:
+            cmd_psql.insert_data_one(p_client, table, {'hash': attached['document']['hash']})
+            id_message = cmd_psql.get_unique_data(p_client, table, 'id_message',
+                                                  f"hash LIKE '{attached['document']['hash']}'")
+
+        table = 'kaamelott_mail_store'
+        clause = (f"jira_key LIKE '{ticket['key']}' "
+                  f"AND id_message = {id_message} "
+                  f"AND id_user = {id_user}")
+        if not cmd_psql.get_unique_data(p_client, table, 'jira_key', clause):
+            data = {
+                'jira_key': ticket['key'],
+                'id_message': id_message,
+                'id_user': id_user
+            }
+            cmd_psql.insert_data_one(p_client, table, data)
+            logger.info("Metadonnées de %s - %s stockées dans PSQL", ticket['key'],
+                        attached['filename'])
+
+        m_document = {key: value for key, value in attached['document'].items()
+                      if key not in ['liens']}
+        m_document['categorie'] = categorie
+        m_document['_id'] = m_document.pop('hash')
+        cmd_mongo.insert_document(m_document, collection)
+
+    m_client.close()
+    p_client.close()
+    logger.info("%s Fin de la sauvegarde des documents", ticket['key'])
