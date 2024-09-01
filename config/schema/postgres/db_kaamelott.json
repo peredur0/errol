@@ -36,6 +36,10 @@
             "name": "kaamelott_mail_eval",
             "fields": [
               {
+                "name": "id_eval",
+                "type": ["SERIAL", "PRIMARY KEY"]
+              },
+              {
                 "name": "id_message",
                 "type": ["INT", "NOT NULL"]
               },

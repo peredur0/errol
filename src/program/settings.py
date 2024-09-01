@@ -132,6 +132,7 @@ class Settings:
             case 'develop':
                 self.args['graph'] = arguments.graph
                 self.infra['mails'] = conf.get('infra', 'tmp_folder')
+                self.args['init'] = arguments.init
 
             case 'features':
                 self.args['graph'] = arguments.graph

@@ -104,7 +104,7 @@ def get_all_documents(collection, d_filter=None, include=None, limit=None):
     if isinstance(include, list):
         include = {field: 1 for field in include}
     else:
-        include = {'include': 1}
+        include = {}
 
     try:
         with pymongo.timeout(15):
