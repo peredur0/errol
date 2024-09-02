@@ -19,6 +19,7 @@ import stanza
 import pandas as pd
 from nltk.corpus import stopwords
 from requests.auth import HTTPBasicAuth
+import pprint
 
 from src.modules import cmd_psql
 from src.modules import cmd_mongo
@@ -68,10 +69,18 @@ def main(conf):
     for ticket in to_process:
         match ticket['ticket_type']:
             case 'Evaluate':
-                eval_ticket(ticket, conf)
-                post_report(conf, ticket)
+                eval_ticket(conf, ticket)
+                post_eval_report(conf, ticket)
                 save_results(conf, ticket)
                 save_mail(conf, ticket)
+
+            case 'Populate':
+                eval_ticket(conf, ticket)
+                save_mail(conf, ticket)
+                post_populate_report(conf, ticket)
+
+            case 'Remove':
+                pass
 
             case _:
                 logger.warning('Type de ticket inconnu - %s', ticket['ticket_type'])
@@ -100,9 +109,13 @@ def get_issue_data(conf, issue):
         'key': data['key'],
         'ticket_type': data['fields']['issuetype']['name'],
         'reporter': data['fields']['reporter']['emailAddress'],
-        'storage_auth': data['fields']['customfield_10048']['value'],
         'attachment': []
     }
+    if data['fields']['customfield_10048']:
+        extracted_data['storage_auth'] = data['fields']['customfield_10048']['value']
+
+    if data['fields']['customfield_10050']:
+        extracted_data['categorie'] = data['fields']['customfield_10050']['value'].lower()
 
     if 'attachment' in data['fields']:
         for attachment in data['fields']['attachment']:
@@ -118,11 +131,11 @@ def get_issue_data(conf, issue):
 
     return extracted_data
 
-def eval_ticket(ticket, conf):
+def eval_ticket(conf, ticket):
     """
     Process pour le traitement des demandes d'évaluation.
-    :param ticket: <dict>
     :param conf: <Settings>
+    :param ticket: <dict>
     :return: <None>
     """
     header = {'Accept': 'application/json'}
@@ -164,20 +177,25 @@ def eval_ticket(ticket, conf):
             logger.debug("%s mail téléchargé - %s", ticket['key'],
                          os.path.split(tmp_file.name)[-1])
             attached['tmp_path'] = tmp_file.name
-            attachment_eval(conf, ticket, attached)
+            document = pre_traitement(ticket['key'], attached)
 
-def attachment_eval(conf, ticket, attached):
+            if ticket['ticket_type'] == "Populate":
+                attached['document'] = document
+                return
+
+            if ticket['storage_auth'] == 'Autoriser':
+                attached['document'] = document
+            attachment_eval(conf, ticket, attached, document)
+
+def attachment_eval(conf, ticket, attached, document):
     """
     Evaluer un mail avec les modèles disponibles.
     :param conf: <Settings>
     :param ticket: <dict>
     :param attached: <str>
+    :param document: <dict>
     :return: <None>
     """
-    document = pre_traitement(ticket['key'], attached)
-    if ticket['storage_auth'] == 'Autoriser':
-        attached['document'] = document
-
     client = cmd_mongo.connect(conf)
     collection = client[conf.infra['mongo']['db']][conf.infra['mongo']['models']]
     models = cmd_mongo.get_all_documents(collection, d_filter={'langue': document['langue']})
@@ -486,7 +504,7 @@ def post_reply(conf, ticket, comment, transition=None):
     logger.info("%s Nouvel état pour le ticket- %s", ticket['key'], transition)
 
 
-def post_report(conf, ticket):
+def post_eval_report(conf, ticket):
     """
     Prépare et poste le retour de l'analyse.
     :param conf: <Settings>
@@ -498,8 +516,8 @@ def post_report(conf, ticket):
         if not attached['success']:
             tmp_cmt += attached['result']
         else:
-            tmp_cmt += f"{attached['hash']}\n\t"
-            tmp_cmt += '\n\t'.join([f"{model} > {pred}"
+            tmp_cmt += f"\nIdentifiant du mail: {attached['hash']}\n\t"
+            tmp_cmt += '\n\t'.join([f"{model}\t>\t{pred}"
                                     for model, pred in attached['result'].items()])
         comment += f"{tmp_cmt}\n"
 
@@ -508,6 +526,28 @@ def post_report(conf, ticket):
                 "rtf = Random Tree Forest, svm = Support Vector Machine\n\n"
                 "Merci pour votre confiance.\n"
                 "Pensez à vérifier le résultat de ces analyses - Les modèles peuvent se tromper.\n")
+
+    post_reply(conf, ticket, comment, 'Traité')
+
+
+def post_populate_report(conf, ticket):
+    """
+    Prépare et poste la réponse pour un ticket de population
+    :param conf: <Settings>
+    :param ticket: <dict>
+    """
+    comment = (f"Informations sur les mails fournis:\n"
+               f"Catégorie - {ticket['categorie']}\n")
+
+    tmp_cmt = ""
+    for attached in ticket['attachment']:
+        tmp_cmt = f"\n{attached['filename']}:\n"
+        tmp_cmt += f"\tIdentifiant du message - {attached['document']['hash']}\n"
+        tmp_cmt += f"\tLangue principale détectée - {attached['document']['langue']}\n\n"
+
+    comment += tmp_cmt
+    comment += ("Si un email fourni n'apparait pas c'est qu'il n'a pas pu être traité.\n"
+                "Merci pour votre participation")
 
     post_reply(conf, ticket, comment, 'Traité')
 
@@ -582,10 +622,13 @@ def save_mail(conf, ticket):
     m_client = cmd_mongo.connect(conf)
     collection = m_client[conf.infra['mongo']['db']]['kaamelott']
 
-    categorie = 'Inconnu'
     if ticket['ticket_type'] == 'Evaluate':
         if ticket['storage_auth'] != 'Autoriser':
             return
+        categorie = 'Inconnu'
+    elif ticket['ticket_type'] == 'Populate':
+        categorie = ticket['categorie']
+    else:
         categorie = 'Inconnu'
 
     table = "kaamelott_users"
