@@ -44,11 +44,6 @@ def args_handler():
                             action='store_true',
                             default=False)
 
-    parser_dev.add_argument('-i', '--init',
-                            help="Initialise la base psql",
-                            action='store_true',
-                            default=False)
-
     parser_fouille = subparsers.add_parser('fouille',
                                            help="Réalisation des actions de fouille de données")
     parser_fouille.add_argument('collection',
@@ -183,6 +178,14 @@ def args_handler():
                               nargs='+',
                               choices=trained_models,
                               default=trained_models)
+
+    parser_kaamelott = subparsers.add_parser('kaamelott',
+                                             help='Traitement automatique des tickets Jira')
+
+    parser_kaamelott.add_argument('-i', '--init',
+                                  help="Initialise la base psql",
+                                  action='store_true',
+                                  default=False)
 
     subparsers.required = True
     return parser.parse_args()

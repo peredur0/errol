@@ -44,7 +44,7 @@ def init_log(debug):
     mods = ['__main__',
             'src.program.settings',
             'src.stages.develop', 'src.stages.fouille', 'src.stages.nlp', 'src.stages.features',
-            'src.stages.vecteurs', 'src.stages.train', 'src.stages.check',
+            'src.stages.vecteurs', 'src.stages.train', 'src.stages.check', 'src.stages.kaamelott',
             'src.modules.cmd_docker', 'src.modules.cmd_sqlite', 'src.modules.cmd_mongo',
             'src.modules.cmd_psql', 'src.modules.word_count', 'src.modules.importation',
             'src.modules.transformation', 'src.modules.nettoyage', 'src.modules.graph',
@@ -131,8 +131,6 @@ class Settings:
         match self.stage:
             case 'develop':
                 self.args['graph'] = arguments.graph
-                self.infra['mails'] = conf.get('infra', 'tmp_folder')
-                self.args['init'] = arguments.init
 
             case 'features':
                 self.args['graph'] = arguments.graph
@@ -195,6 +193,14 @@ class Settings:
                 self.args['models'] = arguments.models
                 self.args['mail'] = arguments.mail[0]
                 self.infra['storage'] = conf.get('infra', 'model_store')
+
+            case "kaamelott":
+                self.infra['mails'] = conf.get('infra', 'tmp_folder')
+                self.args['init'] = arguments.init
+                for cont in self.infra['containers']:
+                    if not cmd_docker.container_up(cont):
+                        logger.error('Docker conteneur %s non disponible', cont)
+                        sys.exit(1)
 
             case _:
                 logger.error("Etape %s non reconnue", self.stage)
