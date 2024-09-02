@@ -106,7 +106,7 @@ def get_issue_data(conf, issue):
 
     if 'attachment' in data['fields']:
         for attachment in data['fields']['attachment']:
-            if attachment['mimeType'] != 'message/rfc822':
+            if attachment['mimeType'] not in ['message/rfc822', 'text/plain']:
                 logger.warning('MIME type non supporté - %s %s', attachment['mimeType'],
                                attachment['filename'])
                 continue
@@ -130,14 +130,14 @@ def eval_ticket(ticket, conf):
     logger.info('Début du traitement du ticket evaluation - %s', ticket['key'])
 
     if not ticket['attachment']:
-        logger.info("Ticket sans attachement valide - %s")
+        logger.info("Ticket sans attachement valide - %s", ticket['key'])
         comment = ("Bonjour,\n"
                    "Merci de nous avoir contacter.\n"
                    "Malheureusement, les pièces jointes fournies ne semblent pas répondre aux "
                    "critères de traitement.\n"
                    "Merci de vérifier que vous nous avez bien transmis des fichiers email au "
                    "format .eml")
-        post_reply(conf, ticket['self'], comment, 'Cancel')
+        post_reply(conf, ticket, comment, 'Cancel')
         return
 
     if not os.path.isdir(conf.infra['mails']):
@@ -504,6 +504,7 @@ def post_report(conf, ticket):
         comment += f"{tmp_cmt}\n"
 
     comment += ("\n\n"
+                "Si un email fourni n'apparait pas c'est qu'il n'a pas pu être traité.\n"
                 "rtf = Random Tree Forest, svm = Support Vector Machine\n\n"
                 "Merci pour votre confiance.\n"
                 "Pensez à vérifier le résultat de ces analyses - Les modèles peuvent se tromper.\n")
