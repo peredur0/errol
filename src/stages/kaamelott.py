@@ -621,6 +621,9 @@ def post_eval_report(conf, ticket):
     :param conf: <Settings>
     :param ticket: <dict>
     """
+    if not ticket['attachment']:
+        return
+
     req_lang = ticket['request_language']
     comment = conf.infra['comments']['post_eval'][req_lang]
     for attached in ticket['attachment']:
@@ -628,7 +631,8 @@ def post_eval_report(conf, ticket):
         if not attached['success']:
             tmp_cmt += attached['result']
         else:
-            tmp_cmt += f"\n{conf.infra['comments']['mail_id']}: {attached['hash']}\n\t"
+            tmp_cmt += (f"\n{conf.infra['comments']['mail_id'][req_lang]}: "
+                        f"{attached['hash']}\n\t")
             tmp_cmt += '\n\t'.join([f"{model}\t>\t{pred}"
                                     for model, pred in attached['result'].items()])
         comment += f"{tmp_cmt}\n"
