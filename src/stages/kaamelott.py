@@ -653,6 +653,8 @@ def post_populate_report(conf, ticket):
                f"{ticket['categorie']}\n")
 
     for attached in ticket['attachment']:
+        if ('document' not in attached) or (not attached['document']):
+            continue
         tmp_cmt = f"\n{attached['filename']}:\n"
         tmp_cmt += (f"\t{conf.infra['comments']['mail_id'][req_lang]} - "
                     f"{attached['document']['hash']}\n")
@@ -757,9 +759,8 @@ def save_mail(conf, ticket):
         logger.info('Nouvel utilisateur créé dans la base PSQL')
 
     for attached in ticket['attachment']:
-        if 'document' not in attached:
+        if ('document' not in attached) or (not attached['document']):
             continue
-
         table = 'kaamelott_messages'
         id_message = cmd_psql.get_unique_data(p_client, table, 'id_message',
                                               f"hash LIKE '{attached['document']['hash']}'")
