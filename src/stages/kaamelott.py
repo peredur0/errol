@@ -25,6 +25,7 @@ from src.modules import cmd_mongo
 from src.modules import nettoyage
 from src.modules import importation
 from src.annexes import zipf
+from src.modules.cmd_mongo import connect
 from src.stages.nlp import lemmatise
 from src.stages.train import normalize
 from src.stages.features import features_ponctuations, features_mots, features_zipf, features_hapax
@@ -134,6 +135,9 @@ def get_issue_data(conf, issue):
                 if 'text' in sub_content:
                     extracted_data['ticket_key'].append(sub_content['text'])
 
+    extracted_data['request_language'] = data['fields']['customfield_10065']['value'] if (
+        data)['fields']['customfield_10065'] else 'en'
+
     if 'attachment' in data['fields']:
         for attachment in data['fields']['attachment']:
             if attachment['mimeType'] not in ['message/rfc822', 'text/plain']:
@@ -162,12 +166,7 @@ def eval_ticket(conf, ticket):
 
     if not ticket['attachment']:
         logger.info("Ticket sans attachement valide - %s", ticket['key'])
-        comment = ("Bonjour,\n"
-                   "Merci de nous avoir contacter.\n"
-                   "Malheureusement, les pièces jointes fournies ne semblent pas répondre aux "
-                   "critères de traitement.\n"
-                   "Merci de vérifier que vous nous avez bien transmis des fichiers email au "
-                   "format .eml")
+        comment = conf.infra['comments']['eval_not_attachment'][ticket['request_language']]
         post_reply(conf, ticket, comment, 'Cancel')
         return
 
@@ -195,7 +194,7 @@ def eval_ticket(conf, ticket):
             logger.debug("%s mail téléchargé - %s", ticket['key'],
                          os.path.split(tmp_file.name)[-1])
             attached['tmp_path'] = tmp_file.name
-            document = pre_traitement(ticket['key'], attached)
+            document = pre_traitement(conf, ticket, attached)
 
             if ticket['ticket_type'] == "Populate":
                 attached['document'] = document
@@ -293,12 +292,15 @@ def attachment_eval(conf, ticket, attached, document):
     models = cmd_mongo.get_all_documents(collection, d_filter={'langue': document['langue']})
     client.close()
 
+    req_lang = ticket['request_language']
+
     if not models:
         logger.warning('%s - Pas de modèles IA disponible pour %s', ticket['key'],
                        attached['filename'])
         attached['success'] = False
-        attached['result'] = (f"{document['hash']} - Aucun modèle n'est disponible pour la langue "
-                              f"détectée - {document['langue']}")
+        attached['result'] = (f"{document['hash']} - "
+                              f"{conf.infra['comments']['no_model'][req_lang]} - "
+                              f"{document['langue']}")
         return
 
     attached['hash'] = document['hash']
@@ -308,34 +310,36 @@ def attachment_eval(conf, ticket, attached, document):
         return
 
     feats = features_process(document, attached)
-    bag = nlp_process(document, attached)
+    bag = nlp_process(conf, ticket, document, attached)
     vecteur = vecteur_process(conf, bag, document, attached)
     if not vecteur:
         attached['success'] = False
-        attached['result'] = (f"{document['hash']} - La vectorisation tfidf à échoué probablement "
-                              f"due à un vecteur vide")
+        attached['result'] = (f"{document['hash']} - "
+                              f"{conf.infra['comments']['tfidf_failed'][req_lang]}")
         return
 
-    ai_eval(models, document, feats, vecteur, attached)
+    ai_eval(models, document, feats, vecteur, attached, conf=conf, ticket=ticket)
 
 
-def pre_traitement(ticket_key, attached):
+def pre_traitement(conf, ticket, attached):
     """
     Traitement initial de la pièce jointe
-    :param ticket_key: <str>
+    :param conf: <Settings>
+    :param ticket: <dict>
     :param attached: <dict>
     :return: <dict>
     """
-    logger.debug('%s Traitement initial de %s', ticket_key, attached['filename'])
+    logger.debug('%s Traitement initial de %s', ticket['key'], attached['filename'])
     mail = importation.load_mail(attached['tmp_path'])
     sujet, exp = importation.extract_mail_meta(mail)
     body = importation.extract_mail_body(mail)
     body, liens = nettoyage.clear_texte_init(body)
+    req_lang = ticket['request_language']
 
     if not body:
         logger.warning("Echec de récupération du corps de %s", attached['filename'])
         attached['success'] = False
-        attached['result'] = "Echec de récupération du corps de mail - probablement vide"
+        attached['result'] = conf.infra['comments']['empty_body'][req_lang]
         return {}
 
     try:
@@ -344,7 +348,7 @@ def pre_traitement(ticket_key, attached):
     except langdetect.lang_detect_exception.LangDetectException as err:
         logger.error("Echec de détection de la langue pour %s %s", attached['filename'], err)
         attached['success'] = False
-        attached['result'] = "Echec de la détection de la langue"
+        attached['result'] = conf.infra['comments']['lang_detect_failed'][req_lang]
         return {}
 
     document = {
@@ -359,7 +363,7 @@ def pre_traitement(ticket_key, attached):
     return document
 
 
-def ai_eval(models, document, feats, vecteur, attached):
+def ai_eval(models, document, feats, vecteur, attached, **kwargs):
     """
     Réalise l'évaluation via les modèles
     :param models: <list>
@@ -369,6 +373,9 @@ def ai_eval(models, document, feats, vecteur, attached):
     :param attached: <dict>
     """
     logger.info("%s - Evaluation des modèles", attached['filename'])
+    conf = kwargs['conf']
+    ticket = kwargs['ticket']
+    req_lang = ticket['request_language']
 
     logger.debug("Préparations des datasets")
     dataset = vecteur
@@ -393,8 +400,9 @@ def ai_eval(models, document, feats, vecteur, attached):
             logger.error("La méthode de normalisation ne correspond pas %s <> %s",
                          type(scaler).__name__, model['scaler'])
             attached['success'] = False
-            attached['result'] = (f"{document['hash']} - Problème de normalisation avec"
-                                  f" {attached['filename']} - contactez l'équipe support")
+            attached['result'] = (f"{document['hash']} - "
+                                  f"{conf.infra['comments']['ai_norm'][req_lang]}"
+                                  f"{attached['filename']}")
             continue
 
         colonne_to_add = {colonne: [0.0]*len(base_df)
@@ -496,14 +504,18 @@ def vecteur_process(conf, bag, document, attached):
     return vecteur
 
 
-def nlp_process(document, attached):
+def nlp_process(conf, ticket, document, attached):
     """
     Traitement NLP de la pièce jointe
+    :param conf: <Settings>
+    :param ticket: <dict>
     :param document: <dict>
     :param attached: <dict>
     :return: <dict>
     """
     logger.info("%s - Traitement du langage naturel", attached['filename'])
+    req_lang = ticket['request_language']
+
     match document['langue']:
         case 'en':
             stopw = set(stopwords.words('english'))
@@ -512,7 +524,8 @@ def nlp_process(document, attached):
         case _:
             logger.info("Langue détectée non supportée - %s", document['langue'])
             attached['success'] = False
-            attached['result'] = (f"{document['hash']} - Pas de processus du langage naturel pour "
+            attached['result'] = (f"{document['hash']} - "
+                                  f"{conf.infra['comment']['no_nlp'][req_lang]} "
                                   f"{document['langue']}")
             return None
 
@@ -608,22 +621,19 @@ def post_eval_report(conf, ticket):
     :param conf: <Settings>
     :param ticket: <dict>
     """
-    comment = "Résultat des évaluations:\n"
+    req_lang = ticket['request_language']
+    comment = conf.infra['comments']['post_eval'][req_lang]
     for attached in ticket['attachment']:
         tmp_cmt = f"\n{attached['filename']} - "
         if not attached['success']:
             tmp_cmt += attached['result']
         else:
-            tmp_cmt += f"\nIdentifiant du mail: {attached['hash']}\n\t"
+            tmp_cmt += f"\n{conf.infra['comments']['mail_id']}: {attached['hash']}\n\t"
             tmp_cmt += '\n\t'.join([f"{model}\t>\t{pred}"
                                     for model, pred in attached['result'].items()])
         comment += f"{tmp_cmt}\n"
 
-    comment += ("\n\n"
-                "Si un email fourni n'apparait pas c'est qu'il n'a pas pu être traité.\n"
-                "rtf = Random Tree Forest, svm = Support Vector Machine\n\n"
-                "Merci pour votre confiance.\n"
-                "Pensez à vérifier le résultat de ces analyses - Les modèles peuvent se tromper.\n")
+    comment += f"\n\n{conf.infra['comments']['eval_thanks'][req_lang]}"
 
     post_reply(conf, ticket, comment, 'Traité')
 
@@ -634,17 +644,19 @@ def post_populate_report(conf, ticket):
     :param conf: <Settings>
     :param ticket: <dict>
     """
-    comment = (f"Informations sur les mails fournis:\n"
-               f"Catégorie - {ticket['categorie']}\n")
+    req_lang = ticket['request_language']
+    comment = (f"{conf.infra['comments']['post_pop'][req_lang]} - "
+               f"{ticket['categorie']}\n")
 
     for attached in ticket['attachment']:
         tmp_cmt = f"\n{attached['filename']}:\n"
-        tmp_cmt += f"\tIdentifiant du message - {attached['document']['hash']}\n"
-        tmp_cmt += f"\tLangue principale détectée - {attached['document']['langue']}\n\n"
+        tmp_cmt += (f"\t{conf.infra['comments']['mail_id'][req_lang]} - "
+                    f"{attached['document']['hash']}\n")
+        tmp_cmt += (f"\t{conf.infra['comments']['detect_lang'][req_lang]} - "
+                    f"{attached['document']['langue']}\n\n")
         comment += tmp_cmt
 
-    comment += ("Si un email fourni n'apparait pas c'est qu'il n'a pas pu être traité.\n"
-                "Merci pour votre participation")
+    comment += f"{conf.infra['comments']['pop_thanks'][req_lang]}"
 
     post_reply(conf, ticket, comment, 'Fermeture')
 

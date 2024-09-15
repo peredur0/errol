@@ -1,0 +1,54 @@
+{
+  "eval_not_attachment": {
+    "fr": "Bonjour,\nMerci de nous avoir contacter.\nMalheureusement, les pièces jointes fournies ne semblent pas répondre aux critères de traitement.\nMerci de vérifier que vous nous avez bien transmis des fichiers email au format .eml",
+    "en": "Hello,\nThank you for contacting us.\nUnfortunately, the attachments provided do not seem to meet the processing criteria.\nPlease check that you have sent us email files in .eml format."
+  },
+  "no_model": {
+    "fr": "Aucun modèle n'est disponible pour la langue détectée",
+    "en": "No AI models available for the detected language"
+  },
+  "tfidf_failed": {
+    "fr": "La vectorisation tfidf à échoué probablement due à un vecteur vide",
+    "en": "Tfidf vectorization failed, probably due to an empty vector"
+  },
+  "empty_body": {
+    "fr": "Echec de récupération du corps de mail - probablement vide",
+    "en": "Failed to retrieve mail body - probably empty"
+  },
+  "lang_detect_failed": {
+    "fr": "Echec de la détection de la langue",
+    "en": "Language detection failure"
+  },
+  "ai_norm": {
+    "fr": "Problème de normalisation avec",
+    "en": "Normalization problem with"
+  },
+  "no_nlp": {
+    "fr": "Pas de processus du langage naturel pour",
+    "en": "No natural language process for"
+  },
+  "post_eval": {
+    "fr": "Résultat des évaluations:\n",
+    "en": "Evaluation results:\n"
+  },
+  "mail_id": {
+    "fr": "Identifiant du mail",
+    "en": "Mail identifier"
+  },
+  "eval_thanks": {
+    "fr": "Si un email fourni n'apparait pas c'est qu'il n'a pas pu être traité.\nrtf = Random Tree Forest, svm = Support Vector Machine\n\nMerci pour votre confiance.\nPensez à vérifier le résultat de ces analyses - Les modèles peuvent se tromper.\n",
+    "en": "If a supplied email does not appear, it could not be processed. \nrtf = Random Tree Forest, svm = Support Vector Machine\n\nThank you for your confidence. \nRemember to check the results of these analyses - Evaluations can be wrong.\n"
+  },
+  "post_pop": {
+    "fr": "Informations sur les mails fournis:\nCatégorie",
+    "en": "Information about the provided mails:\nCategory"
+  },
+  "detect_lang": {
+    "fr": "Langue principale détectée",
+    "en": "Main language detected"
+  },
+  "pop_thanks": {
+    "fr": "Si un email fourni n'apparait pas c'est qu'il n'a pas pu être traité.\nMerci pour votre participation",
+    "en": "If an email does not appear, it means that it could not be processed.\nThank you for your participation."
+  }
+}

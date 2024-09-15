@@ -2,12 +2,14 @@
 """
 Gestion des configurations du programme
 """
-
+import json
 import logging
 import multiprocessing
 import os.path
 import sys
 from configparser import ConfigParser
+
+
 from src.program import args
 from src.modules import cmd_docker
 
@@ -201,6 +203,9 @@ class Settings:
                     if not cmd_docker.container_up(cont):
                         logger.error('Docker conteneur %s non disponible', cont)
                         sys.exit(1)
+
+                with open("./src/local/jira_comment.json", 'r', encoding='utf-8') as file:
+                    self.infra['comments'] = json.load(file)
 
             case _:
                 logger.error("Etape %s non reconnue", self.stage)
