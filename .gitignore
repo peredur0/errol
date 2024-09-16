@@ -20,3 +20,5 @@ src/annexes/__pycache__/
 /rapport/Schéma/.$*.bkp
 /models/
 config/errol.ini
+config/mongo/createUser.js
+config/postgres/init.sql
