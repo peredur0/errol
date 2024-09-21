@@ -113,7 +113,7 @@ def insert_pipeline(conf, documents):
         for mot, freq in data['bag'].items():
             mot = mot.replace("'", "")
             table = 'nlp_mots_corpus'
-            clause = f"mot LIKE '{mot}' and langue LIKE '{lang}'"
+            clause = f"""mot LIKE '{mot.replace("'", "''")}' and langue LIKE '{lang}'"""
             id_mot = cmd_psql.get_unique_data(client, table, 'id_mot', clause)
 
             if not id_mot:

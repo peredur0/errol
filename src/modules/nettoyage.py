@@ -106,7 +106,7 @@ def change_nombres(texte, liens):
     return temp
 
 
-pattern_ponct = re.compile(r'[*#\\-_=:;<>\[\]"\'~)(|/$+}{@%&\\]', flags=re.MULTILINE)
+pattern_ponct = re.compile(r'[*#\\-_=:;<>\[\]"~)(|/$+}{@%&\\]', flags=re.MULTILINE)
 
 
 def clear_ponctuation(texte):
