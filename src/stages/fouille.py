@@ -319,7 +319,7 @@ def psql_insert(psql_chunk, client):
                   'langue': doc['langue']}
                  for hash_mess, doc in psql_chunk.items() if hash_mess not in exists]
     if to_insert:
-        logger.info("Documents a insérés dans la table %s - %s", table, len(to_insert))
+        logger.debug("Documents a insérés dans la table %s - %s", table, len(to_insert))
         cmd_psql.insert_data_many(client, table, to_insert)
 
     exists_mess = {line['hash']: line['id_message']
@@ -338,7 +338,7 @@ def psql_insert(psql_chunk, client):
         to_insert.append(tmp_doc)
 
     if to_insert:
-        logger.info("Documents a insérés dans la table %s - %s", table, len(to_insert))
+        logger.debug("Documents a insérés dans la table %s - %s", table, len(to_insert))
         cmd_psql.insert_data_many(client, table, to_insert)
 
     table = "controle"
@@ -352,5 +352,5 @@ def psql_insert(psql_chunk, client):
                           'initial': str(datetime.date.today())})
 
     if to_insert:
-        logger.info("Documents a insérés dans la table %s - %s", table, len(to_insert))
+        logger.debug("Documents a insérés dans la table %s - %s", table, len(to_insert))
         cmd_psql.insert_data_many(client, table, to_insert)

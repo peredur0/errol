@@ -67,7 +67,7 @@ def insert_documents(documents, collection):
                 if ret:
                     res.append(ret)
 
-        logger.info("Documents insérés dans %s - %s", collection.name, len(res))
+        logger.debug("Documents insérés dans %s - %s", collection.name, len(res))
         return res
 
 
