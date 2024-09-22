@@ -3,6 +3,7 @@
 Wrapper pour les commandes mongo
 """
 import logging
+import urllib.parse
 import bson.errors
 import pymongo
 import pymongo.errors
@@ -17,7 +18,9 @@ def connect(conf):
     :return: <pymongoClient>
     """
     c_mongo = conf.infra['mongo']
-    uri = (f"mongodb://{c_mongo['user_name']}:{c_mongo['user_pwd']}@{c_mongo['host']}:"
+    uri = (f"mongodb://{c_mongo['user_name']}:"
+           f"{urllib.parse.quote_plus(c_mongo['user_pwd'])}@"
+           f"{c_mongo['host']}:"
            f"{c_mongo['port']}/{c_mongo['db']}")
     return pymongo.MongoClient(uri)
 
