@@ -51,6 +51,35 @@ sudo apt update && sudo apt install libpq-dev python3-dev -y
    make docker_start
    ```
 
+## Usage example
+Full process from zero to model creation based on spamassassin data.
+Only mail in english (en) will be processed
+```bash
+make docker_prune
+make docker_start
+source .venv/bin/activate
+./errol.py -b fouille spamassassin -a ./spamassassin_data/ham1/ ./spamassassin_data/ham2/ -p ./spamassassin_data/spam1/ ./spamassassin_data/spam2/
+./errol.py -b features spamassassin -l en
+./errol.py -b nlp spamassassin -l en
+./errol.py -b vecteurs tfidf -l en -t 500 -i
+./errol.py -b train rtf svm -l en
+deactivate
+```
+
+Check an email file locally
+```bash
+source .venv/bin/activate
+./errol.py check ./test_data/file1.eml
+deactivate
+```
+
+Run the automatic jira process
+```bash
+source .venv/bin/activate
+./errol.py kaamelott
+deactivate
+```
+
 ## Documentation
 Full report and references (FR) : [https://github.com/peredur0/errol/blob/master/rapport/IED_lang_fouille_ia.pdf](https://github.com/peredur0/errol/blob/master/rapport/IED_lang_fouille_ia.pdf)
 
