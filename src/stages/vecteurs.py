@@ -53,6 +53,7 @@ def tfidf_init_base(conf):
     langue = conf.args['langue']
     mots_labels = []
     for mot in set_mots:
+        mot = mot.replace("'", "''")
         id_mot = cmd_psql.get_unique_data(client,
                                           'nlp_mots_corpus',
                                           'id_mot',

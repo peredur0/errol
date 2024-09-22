@@ -113,7 +113,7 @@ def insert_data_one(client_psql, table, data):
     """
     cols = ','.join([str(c) for c in data.keys()])
     vals = ','.join([str(v) if not isinstance(v, str)
-                     else f"""'{v.replace("'", "''")}'""" for v in data.values()])
+                     else f"'{v}'" for v in data.values()])
     query = f"INSERT INTO {table}({cols}) VALUES ({vals})"
 
     res = exec_query(client_psql, query)
@@ -142,7 +142,7 @@ def insert_data_many(client_psql, table, data):
     lines_values = []
     for line in data:
         vals = ','.join([str(v) if not isinstance(v, str)
-                         else f"""'{v.replace("'", "''")}'""" for v in line.values()])
+                         else f"'{v}'" for v in line.values()])
         vals = f"({vals})"
         lines_values.append(vals)
 

@@ -41,7 +41,8 @@ def main(conf):
             stopw = set()
 
     pattern = re.compile(r'\w+')
-    stz_pipe = stanza.Pipeline(lang=conf.args['langue'], processors='tokenize,mwt,pos,lemma')
+    stz_pipe = stanza.Pipeline(lang=conf.args['langue'], processors='tokenize,mwt,pos,lemma',
+                               use_gpu=False, num_threads=conf.infra['cpu_available'])
 
     documents = process_pipeline(conf, stz_pipe, pattern, stopw)
     insert_pipeline(conf, documents)
@@ -111,9 +112,9 @@ def insert_pipeline(conf, documents):
                           disable=conf.args['progress_bar']):
 
         for mot, freq in data['bag'].items():
-            mot = mot.replace("'", "")
+            mot = mot.replace("'", "''")
             table = 'nlp_mots_corpus'
-            clause = f"""mot LIKE '{mot.replace("'", "''")}' and langue LIKE '{lang}'"""
+            clause = f"mot LIKE '{mot}' and langue LIKE '{lang}'"
             id_mot = cmd_psql.get_unique_data(client, table, 'id_mot', clause)
 
             if not id_mot:
