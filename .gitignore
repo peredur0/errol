@@ -16,9 +16,10 @@ src/modules/__pycache__/
 src/program/__pycache__/
 src/stages/__pycache__/
 src/annexes/__pycache__/
+/models/
+/hidden/
 
 /rapport/Schéma/.$*.bkp
-/models/
 /config/errol.ini
 /config/schema/mongo/createUser.js
 /config/schema/postgres/init.sql
