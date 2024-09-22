@@ -139,7 +139,7 @@ def mise_en_base(result, conf):
             to_update = {"features": str(datetime.date.today())}
             cmd_psql.update(cli_psql, 'controle', to_update, clause=f'id_message = {psql_id}')
 
-        logger.info("%s documents traités", len(batch))
+        logger.debug("%s documents traités", len(batch))
 
     cli_psql.close()
 
