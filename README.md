@@ -58,7 +58,7 @@ Only mail in english (en) will be processed
 make docker_prune
 make docker_start
 source .venv/bin/activate
-./errol.py -b fouille spamassassin -a ./spamassassin_data/ham1/ ./spamassassin_data/ham2/ -p ./spamassassin_data/spam1/ ./spamassassin_data/spam2/
+./errol.py fouille spamassassin -a ./spamassassin_data/ham1/ ./spamassassin_data/ham2/ -p ./spamassassin_data/spam1/ ./spamassassin_data/spam2/
 ./errol.py -b features spamassassin -l en
 ./errol.py -b nlp spamassassin -l en
 ./errol.py -b vecteurs tfidf -l en -t 500 -i
