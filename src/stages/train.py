@@ -273,14 +273,14 @@ def save_model(conf, name, values, scaler_name, ham_id):
     :param scaler_name: <Scaler>,
     :param ham_id: <int>
     """
-    chemin = f"{conf.infra['storage']}/{name}.pkl"
+    chemin = f"{conf.infra['storage']}/{conf.args['langue']}_{name}.pkl"
     joblib.dump(values['model'], chemin)
     model = values.pop('model')
     document = {
         'name': name,
         'chemin': chemin,
         'langue': conf.args['langue'],
-        'creation': datetime.datetime.utcnow(),
+        'creation': datetime.datetime.now(datetime.timezone.utc),
         'colonnes': list(values.pop('colonnes')),
         'evaluation': values,
         'scaler': scaler_name,
