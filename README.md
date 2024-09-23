@@ -1,3 +1,4 @@
+![Errol logo](./ressources/readme/errol_logo.png)
 # Errol - Spam detector project
 Project illustrating all steps necessary to generate AI models to detect spam.
 
