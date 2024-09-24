@@ -36,8 +36,8 @@
     "en": "Mail identifier"
   },
   "eval_thanks": {
-    "fr": "Si un email fourni n'apparait pas c'est qu'il n'a pas pu être traité.\nrtf = Random Tree Forest, svm = Support Vector Machine\n\nMerci pour votre confiance.\nPensez à vérifier le résultat de ces analyses - Les modèles peuvent se tromper.\n",
-    "en": "If a supplied email does not appear, it could not be processed. \nrtf = Random Tree Forest, svm = Support Vector Machine\n\nThank you for your confidence. \nRemember to check the results of these analyses - Evaluations can be wrong.\n"
+    "fr": "Si un email fourni n'apparait pas c'est qu'il n'a pas pu être traité.\nrtf = Random Tree Forest, svm = Support Vector Machine\n\nMerci pour votre confiance.\n",
+    "en": "If a supplied email does not appear, it could not be processed. \nrtf = Random Tree Forest, svm = Support Vector Machine\n\nThank you for your help. \n"
   },
   "post_pop": {
     "fr": "Informations sur les mails fournis:\nCatégorie",
