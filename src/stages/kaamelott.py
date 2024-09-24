@@ -111,8 +111,11 @@ def get_issue_data(conf, issue):
         'key': data['key'],
         'ticket_type': data['fields']['issuetype']['name'],
         'reporter': data['fields']['reporter']['emailAddress'],
-        'attachment': []
+        'attachment': [],
+        'storage_auth': 'Autoriser',
+        'categorie': 'Inconnu'
     }
+
     if data['fields']['customfield_10048']:
         extracted_data['storage_auth'] = data['fields']['customfield_10048']['value']
 
