@@ -11,6 +11,7 @@ import logging
 import tempfile
 import json
 import datetime
+import warnings
 
 import joblib
 import requests
@@ -25,7 +26,6 @@ from src.modules import cmd_mongo
 from src.modules import nettoyage
 from src.modules import importation
 from src.annexes import zipf
-from src.modules.cmd_mongo import connect
 from src.stages.nlp import lemmatise
 from src.stages.train import normalize
 from src.stages.features import features_ponctuations, features_mots, features_zipf, features_hapax
@@ -34,6 +34,7 @@ from src.stages.features import features_ponctuations, features_mots, features_z
 logger = logging.getLogger(__name__)
 logging.getLogger('stanza').setLevel(logging.ERROR)
 
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 def main(conf):
     """
@@ -195,6 +196,9 @@ def eval_ticket(conf, ticket):
                          os.path.split(tmp_file.name)[-1])
             attached['tmp_path'] = tmp_file.name
             document = pre_traitement(conf, ticket, attached)
+
+            if not document:
+                continue
 
             if ticket['ticket_type'] == "Populate":
                 attached['document'] = document

@@ -77,7 +77,7 @@ deactivate
 Run the automatic jira process
 ```bash
 source .venv/bin/activate
-./errol.py kaamelott
+./errol.py kaamelott -i
 deactivate
 ```
 
