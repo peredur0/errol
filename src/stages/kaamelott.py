@@ -497,6 +497,7 @@ def vecteur_process(conf, bag, document, attached):
 
     vecteur = {}
     for mot, occurrence in bag.items():
+        mot = mot.replace("'", "''")
         data = cmd_psql.exec_query(client_psql, queries['check_label'].format(
             mot=mot, algo='tfidf', langue=document['langue']))
         if not data:
