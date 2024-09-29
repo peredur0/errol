@@ -3,11 +3,12 @@
 Module pour la gestion des importations dans le programme
 """
 
+import re
 import os
 import logging
 import email
 import email.header
-import re
+import email.message
 
 from src.modules import nettoyage
 
@@ -116,3 +117,45 @@ def extract_mail_meta(msg):
         expediteur = extract[0]
 
     return sujet, expediteur
+
+
+FW_MARKERS = [
+    "---------- Forwarded message ----------",
+    "---------- Forwarded message ---------",
+    "----Message Forwarded----",
+    "Forwarded message",
+    "Message transféré"
+]
+
+
+def keep_forwarded(body):
+    """
+    Conserve uniquement la partie forward du message
+    :param body: <str>
+    """
+    for marker in FW_MARKERS:
+        if marker in body:
+            return body.split(marker)[1]
+    return body
+
+
+# FW_PATTERN = re.compile(r"\s*(De|From)\s:\s+.+\s*<(?P<sender>.+)>\s*")
+FW_PATTERN = re.compile(r"\s*(De|From)\s:\s.+<(?P<sender>.+)>\s*Date\s*:(?P<date>.+)+\s*"
+                        r"Subject\s*:\s*(?P<subject>.+)\s*To:\s*.+\s*(?P<body>((.)*\s*)*)")
+
+def format_forwarded(body):
+    """
+    Formatter un message forwarded comme un objet email
+    :param body: <str>
+    :return: <email>
+    """
+    if result := re.search(FW_PATTERN, body):
+        result = result.groupdict()
+        new_email = email.message.EmailMessage()
+        new_email['From'] = result.get('sender')
+        new_email['Date'] = result.get('date')
+        new_email['Subject'] = result.get('subject')
+        new_email.set_content(result.get('body', ''))
+        return new_email
+
+    return email.message_from_string(body)
