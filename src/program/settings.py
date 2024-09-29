@@ -112,6 +112,14 @@ class Settings:
                     {
                         'search': conf.get('jira', 'api_search'),
                     }
+            },
+            'mail': {
+                'user': conf.get('mail', 'user'),
+                'password': conf.get('mail', 'password'),
+                'imap_srv': conf.get('mail', 'imap_srv'),
+                'imap_port': conf.get('mail', 'imap_port'),
+                'smtp_srv': conf.get('mail', 'smtp_srv'),
+                'smtp_port': conf.get('mail', 'smtp_port')
             }
         }
 
