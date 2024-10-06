@@ -48,7 +48,7 @@ def main(conf):
     imap = imaplib.IMAP4_SSL(conf.infra['mail']['imap_srv'], conf.infra['mail']['imap_port'])
     imap.login(conf.infra['mail']['user'], conf.infra['mail']['password'])
     imap.select('inbox')
-    status, messages = imap.search(None, "ALL") # todo: UNSEEN
+    status, messages = imap.search(None, "ALL") # todo: UNSEEN for production
     if status != 'OK':
         logger.error("Erreur inattendue lors de la récupération des mails - %s", status)
         return
@@ -59,19 +59,19 @@ def main(conf):
         if not mail_data:
             continue
         to_process.append(mail_data)
-
-        # todo: ouvrir un ticket pour le compte de l'expéditeur
-        # todo: répondre au mails en précisant le numéro de ticket ouvert et le résultat de l'IA
-
-        # move(imap, mail_id, 'Processed')
+        # move(imap, mail_id, 'Processed') # todo: restore for production
 
     imap.close()
     imap.logout()
 
     for mail in to_process:
-        if not mail['target']:
+        if (not mail['target']) or ('errol@mail.fr' in mail['target']['message']):
             continue
         print(mail)
+        # if 'success'
+        # todo: analyser le message
+        # todo: ouvrir un ticket pour le compte de l'expéditeur
+        # todo: répondre au mails en précisant le numéro de ticket ouvert et le résultat de l'IA
 
 
 def preprocess_mail(conf, imap, mail_id):
