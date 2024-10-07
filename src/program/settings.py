@@ -141,6 +141,8 @@ class Settings:
         match self.stage:
             case 'develop':
                 self.args['graph'] = arguments.graph
+                with open("./src/local/jira_comment.json", 'r', encoding='utf-8') as file:
+                    self.infra['comments'] = json.load(file)
 
             case 'features':
                 self.args['graph'] = arguments.graph

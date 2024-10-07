@@ -302,7 +302,7 @@ def attachment_eval(conf, ticket, attached, document):
     req_lang = ticket['request_language']
 
     if not models:
-        logger.warning('%s - Pas de modèles IA disponible pour %s', ticket['key'],
+        logger.warning('%s - Pas de modèles IA disponibles pour %s', ticket['key'],
                        attached['filename'])
         attached['success'] = False
         attached['result'] = (f"{document['hash']} - "
@@ -317,7 +317,7 @@ def attachment_eval(conf, ticket, attached, document):
         return
 
     feats = features_process(document, attached)
-    bag = nlp_process(conf, ticket, document, attached)
+    bag = nlp_process(conf, document, attached, ticket=ticket)
     vecteur = vecteur_process(conf, bag, document, attached)
     if not vecteur:
         attached['success'] = False
@@ -379,10 +379,10 @@ def ai_eval(models, document, feats, vecteur, attached, **kwargs):
     :param vecteur: <dict>
     :param attached: <dict>
     """
-    logger.info("%s - Evaluation des modèles", attached['filename'])
-    conf = kwargs['conf']
-    ticket = kwargs['ticket']
-    req_lang = ticket['request_language']
+    logger.info("%s - Evaluation des modèles (%s)",
+                document['hash'],
+                attached['filename'] if 'filename' in attached else 'direct mail')
+    req_lang = kwargs['ticket']['request_language'] if 'ticket' in kwargs else 'en'
 
     logger.debug("Préparations des datasets")
     dataset = vecteur
@@ -408,8 +408,9 @@ def ai_eval(models, document, feats, vecteur, attached, **kwargs):
                          type(scaler).__name__, model['scaler'])
             attached['success'] = False
             attached['result'] = (f"{document['hash']} - "
-                                  f"{conf.infra['comments']['ai_norm'][req_lang]}"
-                                  f"{attached['filename']}")
+                                  f"{kwargs['conf'].infra['comments']['ai_norm'][req_lang]}"
+                                  f"{attached['filename'] 
+                                  if 'filename' in attached else 'direct mail'}")
             continue
 
         colonne_to_add = {colonne: [0.0]*len(base_df)
@@ -429,8 +430,11 @@ def ai_eval(models, document, feats, vecteur, attached, **kwargs):
 
         attached['success'] = True
         attached['result'][model['name']] = 'ham' if prediction == model['ham_id'] else 'spam'
-        logger.info('%s %s %s > %s', model['name'], attached['filename'],
-                    document['hash'], attached['result'][model['name']])
+        logger.info('%s %s %s > %s',
+                    model['name'],
+                    attached['filename'] if 'filename' in attached else 'direct mail',
+                    document['hash'],
+                    attached['result'][model['name']])
 
 
 def previous_eval(conf, models, document, attached):
@@ -451,7 +455,7 @@ def previous_eval(conf, models, document, attached):
                                           f"hash LIKE '{document['hash']}'")
 
     if not id_message:
-        logger.debug("Message %s non présent en base", attached['filename'])
+        logger.debug("Message %s non présent en base", document['hash'])
         return models
 
     eval_table = 'kaamelott_mail_eval'
@@ -483,7 +487,9 @@ def vecteur_process(conf, bag, document, attached):
     :param attached: <dict>
     :return: <dict>
     """
-    logger.info("%s - Vectorisation", attached['filename'])
+    logger.info("%s - Vectorisation (%s)",
+                document['hash'],
+                attached['filename'] if 'filename' in attached else 'direct mail')
     client_psql = cmd_psql.connect_db(user=conf.infra['psql']['user'],
                                       passwd=conf.infra['psql']['pass'],
                                       host=conf.infra['psql']['host'],
@@ -507,22 +513,26 @@ def vecteur_process(conf, bag, document, attached):
     client_psql.close()
 
     if not vecteur:
-        logger.error("Vecteur null pour le message %s", attached['filename'])
+        logger.error("Vecteur null pour le message %s - (%s)",
+                     document['hash'],
+                     attached['filename'] if 'filename' in attached else 'direct mail')
 
     return vecteur
 
 
-def nlp_process(conf, ticket, document, attached):
+def nlp_process(conf, document, attached, ticket=None):
     """
     Traitement NLP de la pièce jointe
     :param conf: <Settings>
-    :param ticket: <dict>
     :param document: <dict>
+    :param ticket: <dict>
     :param attached: <dict>
     :return: <dict>
     """
-    logger.info("%s - Traitement du langage naturel", attached['filename'])
-    req_lang = ticket['request_language']
+    logger.info("%s - Traitement du langage naturel (%s)",
+                document['hash'],
+                attached['filename'] if 'filename' in attached else 'direct mail')
+    req_lang = ticket['request_language'] if ticket else 'en'
 
     match document['langue']:
         case 'en':
@@ -544,14 +554,15 @@ def nlp_process(conf, ticket, document, attached):
     return bag
 
 
-def features_process(document, attached):
+def features_process(document, attached=None):
     """
     Récupération des caractéristiques
     :param document: <dict>
     :param attached: <dict>
     :return: <dict>
     """
-    logger.info("%s - Recherche des caractéristiques", attached['filename'])
+    logger.info("%s - Recherche des caractéristiques (%s)", document['hash'],
+                attached['filename'] if attached else 'direct mail')
     feats = {}
     for fonction in [features_ponctuations, features_mots, features_zipf, features_hapax]:
         feats.update(fonction(document['message']))

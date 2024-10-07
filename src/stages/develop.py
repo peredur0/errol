@@ -11,8 +11,10 @@ import re
 
 import langdetect
 
-from src.modules import importation
+from src.modules import importation, cmd_mongo
 from src.modules import nettoyage
+from src.stages.kaamelott import previous_eval, features_process, nlp_process, vecteur_process, \
+    ai_eval
 
 logger = logging.getLogger(__name__)
 
@@ -65,11 +67,19 @@ def main(conf):
     imap.logout()
 
     for mail in to_process:
-        if (not mail['target']) or ('errol@mail.fr' in mail['target']['message']):
+        if (not mail['target']) or ('errol@mail.fr' in mail['target']['document']['message']):
             continue
+
+        if 'result' in mail['target']:
+            logger.warning("Problème survenu lors du traitement de %s - %s",
+                           mail['source']['subject'], mail['target']['result'])
+            # todo: Répondre au mail
+            continue
+
+        direct_mail_eval(conf, mail)
         print(mail)
-        # if 'success'
-        # todo: analyser le message
+
+
         # todo: ouvrir un ticket pour le compte de l'expéditeur
         # todo: répondre au mails en précisant le numéro de ticket ouvert et le résultat de l'IA
 
@@ -140,3 +150,42 @@ def preprocess_mail(conf, imap, mail_id):
         }
 
     return mail_data
+
+
+def direct_mail_eval(conf, mail):
+    """
+    Réaliser l'analyse d'un mail envoyé directement
+    :param conf: <Settings>
+    :param mail: <dict>
+    :return: <None>
+    """
+    dft_lang = 'en'
+    client = cmd_mongo.connect(conf)
+    collection = client[conf.infra['mongo']['db']][conf.infra['mongo']['models']]
+    models = cmd_mongo.get_all_documents(collection,
+                                         d_filter={'langue': mail['target']['document']['langue']})
+    client.close()
+
+    if not models:
+        logger.warning('Pas de modèle IA disponibles pour %s', mail['source']['subject'])
+        mail['target']['success'] = False
+        mail['target']['result'] = (f"{mail['target']['document']['hash']} - "
+                                    f"{conf.infra['comments']['no_model'][dft_lang]} - "
+                                    f"{mail['target']['document']['langue']}")
+        return
+
+    models = previous_eval(conf, models, mail['target']['document'], mail['target'])
+    if not models:
+        logger.info("Aucun nouveau traitement à effectuer pour %s", mail['source']['subject'])
+        return
+
+    feats = features_process(mail['target']['document'])
+    bag = nlp_process(conf, mail['target']['document'], mail['target'])
+    vecteur = vecteur_process(conf, bag, mail['target']['document'], mail['target'])
+    if not vecteur:
+        mail['target']['success'] = False
+        mail['target']['result'] = (f"{mail['target']['document']['hash']} - "
+                                    f"{conf.infra['comments']['tfidf_failed'][dft_lang]}")
+        return
+
+    ai_eval(models, mail['target']['document'], feats, vecteur, mail['target'], conf=conf)
