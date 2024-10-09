@@ -409,7 +409,7 @@ def ai_eval(models, document, feats, vecteur, attached, **kwargs):
             attached['success'] = False
             attached['result'] = (f"{document['hash']} - "
                                   f"{kwargs['conf'].infra['comments']['ai_norm'][req_lang]}"
-                                  f"{attached['filename'] 
+                                  f"{attached['filename']
                                   if 'filename' in attached else 'direct mail'}")
             continue
 
