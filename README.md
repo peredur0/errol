@@ -81,6 +81,17 @@ source .venv/bin/activate
 deactivate
 ```
 
+### Maintenance
+#### PSQL database backup
+```bash
+pg_dump -h localhost -p 5432 -U psql_errol -W -d errol | gzip > "./project_backup/$(date -I)_errol_psql_backup.gz"
+```
+
+#### PSQL database restore
+```bash
+gunzip -c ./project_backup/<DATE>_errol_psql_backup.gz | psql -h localhost -p 5432 -U psql_errol -W errol
+```
+
 ## Documentation
 Full report and references (FR) : [https://github.com/peredur0/errol/blob/master/rapport/IED_lang_fouille_ia.pdf](https://github.com/peredur0/errol/blob/master/rapport/IED_lang_fouille_ia.pdf)
 

@@ -498,8 +498,12 @@ def vecteur_process(conf, bag, document, attached):
     with open(conf.infra['psql']['queries'], 'r', encoding='utf-8') as file:
         queries = json.load(file)
 
-    total_docs = cmd_psql.exec_query(client_psql, queries['check_nb_docs'].format(
-        langue=document['langue']))[0][0]
+    try:
+        total_docs = cmd_psql.exec_query(client_psql, queries['check_nb_docs'].format(
+            langue=document['langue']))[0][0]
+    except TypeError as err:
+        logger.error("Vectorisation - Echec de récupération du nombre de documents - %s", err)
+        return {}
 
     vecteur = {}
     for mot, occurrence in bag.items():

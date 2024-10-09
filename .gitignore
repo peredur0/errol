@@ -18,6 +18,7 @@ src/stages/__pycache__/
 src/annexes/__pycache__/
 /models/
 /hidden/
+/project_backup/
 
 /rapport/Schéma/.$*.bkp
 /config/errol.ini
