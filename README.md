@@ -95,6 +95,9 @@ gunzip -c ./project_backup/<DATE>_errol_psql_backup.gz | psql -h localhost -p 54
 ## Documentation
 Full report and references (FR) : [https://github.com/peredur0/errol/blob/master/rapport/IED_lang_fouille_ia.pdf](https://github.com/peredur0/errol/blob/master/rapport/IED_lang_fouille_ia.pdf)
 
+## Next steps
+1. Manage mail forwarded directly to errol
+2. Handle database desaster (documents still on mongo but disappeared from psql)
 
 ## Contributing
 As this project is part of my course of study, any direct external contribution must be avoided.
