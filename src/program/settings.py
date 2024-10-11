@@ -143,6 +143,8 @@ class Settings:
                 self.args['graph'] = arguments.graph
                 with open("./src/local/jira_comment.json", 'r', encoding='utf-8') as file:
                     self.infra['comments'] = json.load(file)
+                with open("./src/local/mail_reply.json", 'r', encoding='utf-8') as file:
+                    self.infra['reply'] = json.load(file)
 
             case 'features':
                 self.args['graph'] = arguments.graph

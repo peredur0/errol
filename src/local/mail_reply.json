@@ -1,0 +1,14 @@
+{
+  "header": {
+    "en": "Hello there,\n\nThank you for participation\nSee below the results of Errol's process:",
+    "fr": "Hello there,\n\nMerci pour votre participation\nVous trouverez ci-dessous les résultats de l'analyse d'Errol"
+  },
+  "footer": {
+    "en": "We hope it help - Please do not reply to this mail\nErrol team",
+    "fr": "Nous espérons tout s'est bien passé - Merci de ne pas répondre à ce mail\nL'équipe d'Errol"
+  },
+  "success": {
+    "en": "Process status - {result}",
+    "fr": "Etat du process - {result}"
+  }
+}

@@ -2,14 +2,22 @@
 """
 Fichier pour le développement
 """
+import re
 import hashlib
 import logging
 import imaplib
+import smtplib
 import email
 import email.header
-import re
+import socket
+import sys
 
 import langdetect
+
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+import requests.exceptions
 
 from src.modules import importation, cmd_mongo
 from src.modules import nettoyage
@@ -47,8 +55,18 @@ def main(conf):
     logger.info("DEVELOPPEMENT")
     logger.info("Developping the new feature - %s", conf)
 
-    imap = imaplib.IMAP4_SSL(conf.infra['mail']['imap_srv'], conf.infra['mail']['imap_port'])
-    imap.login(conf.infra['mail']['user'], conf.infra['mail']['password'])
+    try:
+        imap = imaplib.IMAP4_SSL(conf.infra['mail']['imap_srv'], conf.infra['mail']['imap_port'])
+    except socket.gaierror as err:
+        logger.error("Echec de connexino au serveur IMAP - %s", err)
+        sys.exit(1)
+
+    try:
+        imap.login(conf.infra['mail']['user'], conf.infra['mail']['password'])
+    except imaplib.IMAP4.abort as err:
+        logger.error('Echec de connexion au serveur IMAP - %s', err)
+        sys.exit(1)
+
     imap.select('inbox')
     status, messages = imap.search(None, "ALL") # todo: UNSEEN for production
     if status != 'OK':
@@ -78,7 +96,7 @@ def main(conf):
 
         direct_mail_eval(conf, mail)
         print(mail)
-
+        reply_mail(conf, mail)
 
         # todo: ouvrir un ticket pour le compte de l'expéditeur
         # todo: répondre au mails en précisant le numéro de ticket ouvert et le résultat de l'IA
@@ -189,3 +207,41 @@ def direct_mail_eval(conf, mail):
         return
 
     ai_eval(models, mail['target']['document'], feats, vecteur, mail['target'], conf=conf)
+
+
+def reply_mail(conf, mail):
+    """
+    Répond à un mail
+    :param conf: <Settings>
+    :param mail: <dict>
+    :return: <None>
+    """
+    dft_lang = 'en'
+    body = f"{conf.infra['reply']['header'][dft_lang]}\n\n"
+    body += f"{conf.infra['reply']['success'][dft_lang].format(result=mail['target']['success'])}\n"
+
+    if mail['target']['success']:
+        body += f"Message id : {mail['target']['document']['hash']}\n"
+        model_return = '\n\t'.join([f"{model}\t>\t{pred}"
+                                    for model, pred in mail['target']['result'].items()])
+        body += f"\n\t{model_return}\n\n"
+    else:
+        body += f"{mail['target']['result']}\n\n"
+
+    body += f"{conf.infra['reply']['footer'][dft_lang]}\n"
+
+    message = MIMEMultipart()
+    message['From'] = conf.infra['mail']['user']
+    message['To'] = mail['source']['requester']
+    message['Subject'] = f"Re: {mail['source']['subject']}"
+    message.attach(MIMEText(body, 'plain'))
+
+    try:
+        smtp_srv = smtplib.SMTP(conf.infra['mail']['smtp_srv'], conf.infra['mail']['smtp_port'])
+        smtp_srv.starttls()
+        smtp_srv.login(conf.infra['mail']['user'], conf.infra['mail']['password'])
+        smtp_srv.sendmail(message['From'], message['To'], message.as_string())
+        smtp_srv.quit()
+        logger.info("Réponse envoyée à %s pour %s", message['To'], message['Subject'])
+    except requests.exceptions.ConnectionError as err:
+        logger.error("Echec d'envoi du mail - %s", err)

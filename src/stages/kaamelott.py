@@ -51,7 +51,12 @@ def main(conf):
     url = conf.infra['jira']['api']['search']
     query = {'jql': f'''project = "{conf.infra['jira']['project']}" AND status = New'''}
 
-    resp = requests.request('GET', url, headers=header, params=query, auth=auth, timeout=30)
+    try:
+        resp = requests.request('GET', url, headers=header, params=query, auth=auth, timeout=30)
+    except requests.exceptions.ConnectionError as err:
+        logger.error("Echec de recherche des tickets dans le projet %s - %s",
+                     conf.infra['jira']['project'], err)
+        sys.exit(1)
 
     if resp.status_code != 200:
         logger.error("Echec de la récupération des tickets - %s %s", resp.status_code, resp.text)
