@@ -89,8 +89,21 @@ pg_dump -h localhost -p 5432 -U psql_errol -W -d errol | gzip > "./project_backu
 
 #### PSQL database restore
 ```bash
-gunzip -c ./project_backup/<DATE>_errol_psql_backup.gz | psql -h localhost -p 5432 -U psql_errol -W errol
+DATE="YYYY-MM-DD"
+gunzip -c ./project_backup/$(DATE)_errol_psql_backup.gz | psql -h localhost -p 5432 -U psql_errol -W errol
 ```
+
+#### Mongo database backup
+```bash
+mongodump --host=localhost --port=5432 --username=mongo_errol --password=PASWWORD --db=errol --archive="./project_backup/$(date -I)_errol_mongo_backup.gz" --gzip
+```
+
+#### Mongo database restore
+```bash
+DATE="YYYY-MM-DD"
+mongorestore --host=localhost --port=5432 --username=mongo_errol --password=PASWWORD --db=errol --archive="./project_backup/$(DATE)_errol_mongo_backup.gz" --gzip
+```
+
 
 ## Documentation
 Full report and references (FR) : [https://github.com/peredur0/errol/blob/master/rapport/IED_lang_fouille_ia.pdf](https://github.com/peredur0/errol/blob/master/rapport/IED_lang_fouille_ia.pdf)
