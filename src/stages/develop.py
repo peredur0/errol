@@ -11,13 +11,12 @@ import email
 import email.header
 import socket
 import sys
-
+import requests.exceptions
 import langdetect
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-
-import requests.exceptions
+from requests.auth import HTTPBasicAuth
 
 from src.modules import importation, cmd_mongo
 from src.modules import nettoyage
@@ -91,15 +90,14 @@ def main(conf):
         if 'result' in mail['target']:
             logger.warning("Problème survenu lors du traitement de %s - %s",
                            mail['source']['subject'], mail['target']['result'])
-            # todo: Répondre au mail
+            reply_mail(conf, mail)
             continue
 
         direct_mail_eval(conf, mail)
-        print(mail)
-        reply_mail(conf, mail)
-
+        create_ticket(conf, mail)
         # todo: ouvrir un ticket pour le compte de l'expéditeur
         # todo: répondre au mails en précisant le numéro de ticket ouvert et le résultat de l'IA
+        # reply_mail(conf, mail)
 
 
 def preprocess_mail(conf, imap, mail_id):
@@ -219,9 +217,9 @@ def reply_mail(conf, mail):
     dft_lang = 'en'
     body = f"{conf.infra['reply']['header'][dft_lang]}\n\n"
     body += f"{conf.infra['reply']['success'][dft_lang].format(result=mail['target']['success'])}\n"
+    body += f"Message id : {mail['target']['document']['hash']}\n"
 
     if mail['target']['success']:
-        body += f"Message id : {mail['target']['document']['hash']}\n"
         model_return = '\n\t'.join([f"{model}\t>\t{pred}"
                                     for model, pred in mail['target']['result'].items()])
         body += f"\n\t{model_return}\n\n"
@@ -245,3 +243,105 @@ def reply_mail(conf, mail):
         logger.info("Réponse envoyée à %s pour %s", message['To'], message['Subject'])
     except requests.exceptions.ConnectionError as err:
         logger.error("Echec d'envoi du mail - %s", err)
+
+
+def create_ticket(conf, mail):
+    """
+    Ajoute un ticket à l'environnement Jira
+    :param conf: <Settings>
+    :param mail: <dict>
+    """
+    header = {'Accept': 'application/json'}
+    auth = HTTPBasicAuth(conf.infra['jira']['user'], conf.infra['jira']['token'])
+    url = conf.infra['jira']['api']['issue']
+
+    if mail['target']['success']:
+        display = '\n\t'.join(f"{model}\t>\t{pred}"
+                             for model, pred in mail['target']['result'].items())
+        display = f"\n\t{display}"
+    else:
+        display = mail['target']['result']
+
+    description = {
+        "type": "doc",
+        "version": 1,
+        "content": [
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": mail['source']['subject']
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": mail['target']['document']['message']
+                    }
+                ]
+            },
+            {
+                "type": "rule",
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level" : 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Result"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"Process success status - {mail['target']['success']}\n"
+                                f"Message ID - {mail['target']['document']['hash']}\n\n"
+                                f"{display}\n\n"
+                    }
+                ]
+            }
+        ]
+    }
+    # todo search ID by mail
+    requester_mail = re.search(r'<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>',
+                               mail['source']['requester']).group(1)
+    payload = {
+        "fields": {
+            "project": {
+                "key": conf.infra['jira']['project_key']
+            },
+            "summary": f"[mail.fr] - {mail['source']['subject']}",
+            "description": description,
+            "issuetype": {
+                "name": "Evaluate"
+            },
+            "reporter": {
+              "emailAddress": requester_mail
+            },
+            "customfield_10048": {"value": "Autoriser"},
+            "customfield_10066": requester_mail
+        }
+    }
+    resp = requests.post(url, json=payload, auth=auth, headers=header, timeout=15)
+    if resp.status_code != 201:
+        logger.error("Echec de création du ticket pour le mail %s - %s %s",
+                     mail['source']['subject'], resp.status_code, resp.text)
+        return
+
+    mail['target']['jira'] = resp.json()
+    logger.info("Ticket %s créé pour %s", mail['target']['jira']['key'],
+                mail['source']['subject'])
+    return

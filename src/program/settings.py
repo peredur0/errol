@@ -107,10 +107,12 @@ class Settings:
             'jira': {
                 'user': conf.get('jira', 'user'),
                 'token': conf.get('jira', 'token'),
-                'project': 'Errol',
+                'project': conf.get('jira', 'project'),
+                'project_key': conf.get('jira', 'project_key'),
                 'api':
                     {
                         'search': conf.get('jira', 'api_search'),
+                        'issue': conf.get('jira', 'api_issue')
                     }
             },
             'mail': {
