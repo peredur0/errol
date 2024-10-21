@@ -112,7 +112,9 @@ class Settings:
                 'api':
                     {
                         'search': conf.get('jira', 'api_search'),
-                        'issue': conf.get('jira', 'api_issue')
+                        'issue': conf.get('jira', 'api_issue'),
+                        'user_search': conf.get('jira', 'api_user_search'),
+                        'user_create': conf.get('jira', 'api_user_create')
                     }
             },
             'mail': {

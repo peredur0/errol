@@ -318,6 +318,8 @@ def create_ticket(conf, mail):
     # todo search ID by mail
     requester_mail = re.search(r'<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>',
                                mail['source']['requester']).group(1)
+    reporter_id = get_jira_id(conf, requester_mail)
+    print(reporter_id)
     payload = {
         "fields": {
             "project": {
@@ -329,7 +331,7 @@ def create_ticket(conf, mail):
                 "name": "Evaluate"
             },
             "reporter": {
-              "emailAddress": requester_mail
+              "id": reporter_id
             },
             "customfield_10048": {"value": "Autoriser"},
             "customfield_10066": requester_mail
@@ -345,3 +347,34 @@ def create_ticket(conf, mail):
     logger.info("Ticket %s créé pour %s", mail['target']['jira']['key'],
                 mail['source']['subject'])
     return
+
+
+def get_jira_id(conf, mail):
+    """
+    Récupère l'id d'un utilisateur via son adresse mail
+    :param conf: <Settings>
+    :param mail: <str>
+    :return: <str>
+    """
+    header = {'Accept': 'application/json'}
+    auth = HTTPBasicAuth(conf.infra['jira']['user'], conf.infra['jira']['token'])
+    url = conf.infra['jira']['api']['user_search']
+
+    resp = requests.get(url, headers=header, auth=auth, params={'query': mail}, timeout=15)
+
+    if resp.status_code != 200:
+        logger.warning("Echec de récupération de l'identifiant Jira de %s - %s %s", mail,
+                       resp.status_code, resp.text)
+        return ""
+
+    if not resp.json():
+        url = conf.infra['jira']['api']['user_create']
+        resp = requests.post(url, headers=header, auth=auth,
+                             json= {"displayName": mail, "email": mail}, timeout=15)
+        if resp.status_code != 201:
+            logger.error('Echec de création du client %s - %s %s', mail, resp.status_code,
+                         resp.text)
+            return ""
+        return resp.json()['accountId']
+
+    return resp.json()[0]['accountId']
