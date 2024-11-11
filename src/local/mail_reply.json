@@ -7,6 +7,10 @@
     "en": "We hope it help\nPlease do not reply to this mail\nErrol team",
     "fr": "Nous espérons tout s'est bien passé\nMerci de ne pas répondre à ce mail\nL'équipe d'Errol"
   },
+  "jira_key": {
+    "en": "Jira ticket key is {key}",
+    "fr": "La clé du ticket jira est {key}"
+  },
   "success": {
     "en": "Process status - {result}",
     "fr": "Etat du process - {result}"
